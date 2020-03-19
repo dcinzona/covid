@@ -9,15 +9,18 @@ app.use(compression());
 
 
 app.get("/", (req, res) => {
-    res.sendFile('./map2.html', { root: __dirname });
+    res.sendFile('./docs/index.html', { root: __dirname });
 });
 
-app.get("/map", (req, res) => {
-    res.sendFile('./map2.html', { root: __dirname });
+app.get("/js/app.js", (req, res) => {
+    res.sendFile('./docs/js/app.js', { root: __dirname });
+});
+app.get("/css/styles.css", (req, res) => {
+    res.sendFile('./docs/css/styles.css', { root: __dirname });
 });
 
 app.get("/favicon.ico", (req, res) => {
-    res.sendFile('./favicon.png', { root: __dirname });
+    res.sendFile('./docs/favicon.png', { root: __dirname });
 });
 
 // The data
@@ -26,11 +29,6 @@ app.get("/data", (req, res) => {
         res.header("Content-Type",'application/json');
         res.json(data);
     });
-});
-
-// The esri
-app.get("/esri.geojson", (req, res) => {
-    getEsriData(res);
 });
 
 // API versioning

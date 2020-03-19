@@ -18,8 +18,11 @@
       ) {
         let layerView;
 
+        const apiVerion = 'v2';
+        const dataUrl = window.location.hostname == 'localhost' ? `/api/${apiVersion}/esri.geojson` : `https://covid-data.gmt.io/api/${apiVersion}/esri.geojson`; 
+
         const layer = new GeoJSONLayer({
-          url: "/api/v2/esri.geojson",
+          url: dataUrl,
           copyright: "CDC / Johns Hopkins",
           title: "COVID-19 Cases over time",
           displayField: "place",
