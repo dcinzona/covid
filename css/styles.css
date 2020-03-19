@@ -1,0 +1,130 @@
+html,
+body {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  background: black;
+}
+
+#applicationDiv {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#viewDiv {
+  width: 100%;
+  height: 100%;
+  flex: 1 1 auto;
+  order: 1;
+}
+
+#titleDiv {
+  font-weight: 400;
+  font-style: normal;
+  font-size: 1.2019rem;
+  padding: 10px;
+}
+
+#updateNote {
+  font-size: 12px;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+#statsDiv span {
+  color: #f9c653;
+  font-size: 12pt;
+  font-weight: bolder;
+}
+
+#sliderContainer {
+  flex: 0 0 80px;
+  order: 2;
+
+  display: flex;
+  flex-flow: row;
+
+  padding: 0 12px;
+}
+#sliderInnerContainer {
+  flex: 1 1 auto;
+  order: 2;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 20px;
+}
+
+#slider {
+  width: 100%;
+  height: 60px;
+}
+#slider > div + div {
+  margin-left: 20px;
+}
+.esri-slider--horizontal .esri-slider__max,
+.esri-slider--horizontal .esri-slider__min {
+  width: auto;
+}
+/**
+    * Play/Stop toggle button
+    */
+
+#playButton {
+  flex: 0 0 100px;
+  order: 1;
+  height: 40px;
+  margin: 20px 0;
+}
+
+.toggle-button {
+  display: flex;
+}
+
+.toggle-button.toggled .toggle-button-icon {
+  color: #cc1b1b;
+  font-size: 40px;
+}
+
+.toggle-button .toggle-button-icon {
+  color: #1bcc1b;
+  font-size: 40px;
+}
+
+.toggle-button > :nth-child(2) {
+  display: none;
+}
+
+.toggle-button.toggled > :nth-child(1) {
+  display: none;
+}
+
+.toggle-button.toggled > :nth-child(2) {
+  display: block;
+}
+/**
+      * Hover tooltip
+      */
+
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  transition: opacity 200ms;
+}
+
+.tooltip > div {
+  margin: 0 auto;
+  padding: 12px;
+  border-radius: 4px;
+  box-shadow: 0px 0px 4px rgba(255, 255, 255, 0.75);
+  transform: translate3d(-50%, -125%, 0);
+}
+.esri-view .esri-view-surface--inset-outline:focus::after {
+  outline: none;
+}
