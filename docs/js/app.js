@@ -18,7 +18,7 @@
       ) {
         let layerView;
 
-        const apiVerion = 'v2';
+        let apiVersion = 'v2';
         const dataUrl = window.location.hostname == 'localhost' ? `/api/${apiVersion}/esri.geojson` : `https://covid-data.gmt.io/api/${apiVersion}/esri.geojson`; 
 
         const layer = new GeoJSONLayer({
