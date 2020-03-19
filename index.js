@@ -19,7 +19,7 @@ app.get("/css/styles.css", (req, res) => {
     res.sendFile('./docs/css/styles.css', { root: __dirname });
 });
 
-app.get("/favicon.ico", (req, res) => {
+app.get("/favicon\.(ico|png)", (req, res) => {
     res.sendFile('./docs/favicon.png', { root: __dirname });
 });
 
