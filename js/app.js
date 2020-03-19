@@ -1,0 +1,388 @@
+
+      require([
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/core/promiseUtils",
+        "esri/layers/GeoJSONLayer",
+        "esri/widgets/Slider",
+        "esri/widgets/Expand",
+        "esri/widgets/Legend"
+      ], function(
+        Map,
+        MapView,
+        promiseUtils,
+        GeoJSONLayer,
+        Slider,
+        Expand,
+        Legend
+      ) {
+        let layerView;
+
+        const layer = new GeoJSONLayer({
+          url: "/api/v2/esri.geojson",
+          copyright: "CDC / Johns Hopkins",
+          title: "COVID-19 Cases over time",
+          displayField: "place",
+          renderer: {
+            type: "simple",
+            field: "ct",
+            symbol: {
+              type: "simple-marker",
+              color: "#00ffff"
+            },
+            visualVariables: [
+              {
+                type: "opacity",
+                field: "ct",
+                stops: [
+                  {
+                    value: 1,
+                    opacity: 0.7
+                  }
+                ],
+                legendOptions: {
+                  showLegend: false
+                }
+              },
+              ,
+              {
+                type: "size",
+                minDataValue: 1,
+                maxDataValue: 3000,
+                minSize: 5,
+                maxSize: 80,
+                valueExpression: "$feature.ct * 1",
+                valueExpressionTitle: "Confirmed Cases",
+                valueUnit: "unknown"
+              },
+              {
+                type: "color",
+                valueExpression: "( $feature.ct / 1 ) * 1",
+                valueExpressionTitle: "Confirmed Cases",
+                stops: [
+                  { value: 1, color: "cyan" },
+                  //{ value: 800, color: "#98d1d1" },
+                  { value: 1600, color: "#ffed85" },
+                  //{ value: 3500, color: "#df979e" },
+                  { value: 3500, color: "#c80064" }
+                ],
+                legendOptions: {
+                  showLegend: true
+                }
+              }
+            ]
+          },
+          popupTemplate: {
+            title: "{title}",
+            content: [
+              {
+                type: "fields",
+                fieldInfos: [
+                  {
+                    fieldName: "place",
+                    label: "Location",
+                    visible: true
+                  },
+                  {
+                    fieldName: "ct",
+                    label: "Confirmed",
+                    visible: true
+                  },
+                  {
+                    fieldName: "coords",
+                    label: "Coordinates",
+                    visible: true
+                  },
+                  {
+                    fieldName: "dateString",
+                    label: "Reported On",
+                    visible: true
+                  }
+                ]
+              }
+            ]
+          }
+        });
+
+        const clusterConfig = {
+          type: "cluster",
+          clusterRadius: "40px",
+          popupTemplate: {
+            content: [
+              {
+                type: "text",
+                text:
+                  "This cluster represents <b>{cluster_count}</b> locations."
+              }
+            ]
+          }
+        };
+        /* */
+        //layer.featureReduction = clusterConfig;
+        /* */
+        const map = new Map({
+          basemap: "dark-gray",
+          layers: [layer]
+        });
+
+        var view = new MapView({
+          map: map,
+          container: "viewDiv",
+          zoom: 3,
+          center: [	5,35 ]//[-117.50268, 34.04713]
+        });
+        view.constraints = {
+          minZoom: 2,  // User cannot zoom out beyond a scale of 1:500,000
+          maxZoom: 7,  // User can overzoom tiles
+          rotationEnabled: false  // Disables map rotation
+        };
+
+        var applicationDiv = document.getElementById("applicationDiv");
+        var playButton = document.getElementById("playButton");
+        var titleDiv = document.getElementById("titleDiv");
+        var updateNote = document.getElementById("updateNote");
+        var animation = null;
+
+        var yesterday = function() {
+          var dt = new Date();
+          return new Date(dt.setDate(dt.getDate() - 1)).toString();
+        };
+
+        const startDate = new Date(2020, 0, 22).getTime();
+
+        const nextUpdate = new Date(new Date().toLocaleDateString() + ' 23:59 UTC');
+        var hrs = new Date().getTime() < nextUpdate.getTime() ? 21 : 0;
+        const endDate = new Date().getTime() - (3600 * 1000 * hrs);
+
+        var nextupdHrs = nextUpdate.getHours();
+        console.log(nextUpdate.toLocaleString())
+        updateNote.innerText = 'Next update: ' + nextUpdate.toLocaleString();// + nextUpdate.getTimezoneOffset();
+        //console.log(new Date().getTime());
+        //console.log(new Date(endDate));
+
+        /**
+          DATE FORMATTER
+        **/
+        function convertToDateString(value) {
+          //YYYY-MM-DD  
+          let date = new Date(value);
+          let dayOfMonth = date.getDate();
+          let month = date.getMonth() + 1;
+          let year = date.getFullYear();
+          month = month < 10 ? '0' + month : month;
+          dayOfMonth = dayOfMonth < 10 ? '0' + dayOfMonth : dayOfMonth;
+          return `${year}-${month}-${dayOfMonth}`
+        }
+
+        view.ui.empty("top-left");
+        view.ui.add(titleDiv, "top-left");
+
+        const slider = new Slider({
+          container: "slider",
+          min: startDate,
+          max: endDate,
+          values: [startDate],
+          step: 86400, //seconds in a day
+          rangeLabelsVisible: true,
+          precision: 0,
+          labelsVisible: true
+        });
+        slider.labelFormatFunction = function(value, type) {
+          return convertToDateString(value);
+        };
+
+        const dateFilterField = "dateString";
+
+        const magSum = {
+          onStatisticField: "ct",
+          outStatisticFieldName: "Sum_confirmed",
+          statisticType: "sum",
+          precision: 0
+        };
+
+        const placesCount = {
+          onStatisticField: "1=1",
+          outStatisticFieldName: "record_count",
+          statisticType: "count",
+          precision: 0
+        };
+
+        const statsFields = {
+          record_count: "Places Reporting",
+          Sum_confirmed: "Total Confirmed"
+        };
+
+        // wait till the layer view is loaded
+        view.whenLayerView(layer).then(function(lv) {
+          layerView = lv;
+          setDate(startDate);
+        });
+
+        function setDate(value) {
+          var dateStr = convertToDateString(value);
+          //console.log(value + ' = ' + convertToDateString(value));
+          slider.viewModel.setValue(0, value);
+          layerView.filter = {
+            where: dateFilterField + " = '" + dateStr + "'"
+          };
+
+          const statQuery = layerView.filter.createQuery();
+          statQuery.outStatistics = [
+            magSum,
+            placesCount
+          ];
+
+          layer
+          .queryFeatures(statQuery)
+          .then(function(result) {
+            let htmls = [];
+            statsDiv.innerHTML = "";
+            if (result.error) {
+              return result.error;
+            } else {
+              if (result.features.length >= 1) {
+                var attributes = result.features[0].attributes;
+                for (name in statsFields) {
+                  if (attributes[name] && attributes[name] != null) {
+                    const html =
+                      "<div>" +
+                      statsFields[name] +
+                      ": <b><span> " +
+                      attributes[name].toFixed(0) +
+                      "</span></b></div>";
+                    htmls.push(html);
+                  }
+                }
+                var statsHtml =
+                  "<br/><div><span>" +
+                  result.features[0].attributes["record_count"] +
+                  "</span> locations reporting on <b>" +
+                  convertToDateString( slider.viewModel.values[0] );
+                  "</b>.</div><br/>";
+
+                if (htmls[0] == undefined) {
+                  statsDiv.innerHTML = statsHtml;
+                } else {
+                  statsDiv.innerHTML =
+                  htmls[1] + statsHtml;
+                }
+              }
+            }
+          })
+          .catch(function(error) {
+            console.log(error);
+          });
+
+
+        }
+
+        // When user drags the slider:
+        //  - stops the animation
+        //  - set the visualized year to the slider one.
+        function inputHandler(event) {
+          stopAnimation();
+          setDate(event.value);
+        }
+
+        slider.on("thumb-drag", inputHandler);
+
+        // Toggle animation on/off when user
+        // clicks on the play button
+        playButton.addEventListener("click", function() {
+          if (playButton.classList.contains("toggled")) {
+            stopAnimation();
+          } else {
+            startAnimation();
+          }
+        });
+
+        /**
+         * Starts the animation that cycle
+         */
+        function startAnimation() {
+          stopAnimation();
+          if (
+            convertToDateString(slider.values[0]) ==
+            convertToDateString(new Date(endDate))
+          ) {
+            setDate(startDate);
+          }
+          animation = animate(slider.values[0]);
+          playButton.classList.add("toggled");
+        }
+
+        /**
+         * Stops the animations
+         */
+        function stopAnimation() {
+          if (!animation) {
+            return;
+          }
+
+          animation.remove();
+          animation = null;
+          playButton.classList.remove("toggled");
+        }
+
+        /**
+         * Animates the color visual variable continously
+         */
+        function animate(startValue) {
+          var animating = true;
+          var value = startValue;
+
+          var frame = function(timestamp) {
+            if (!animating) {
+              return;
+            }
+
+            value += 86400 * 90;
+            if (value >= endDate) {
+              value = startDate;
+              stopAnimation();
+              return;
+            }
+
+            setDate(value);
+
+            // Update at 30fps
+            setTimeout(function() {
+              requestAnimationFrame(frame);
+            }, 1000 / 60);
+          };
+
+          frame();
+
+          return {
+            remove: function() {
+              animating = false;
+            }
+          };
+        }
+        
+
+        // add a legend for the earthquakes layer
+        const legendExpand = new Expand({
+          collapsedIconClass: "esri-icon-collapse",
+          expandIconClass: "esri-icon-expand",
+          expandTooltip: "Legend",
+          view: view,
+          content: new Legend({
+            view: view
+          }),
+          expanded: false
+        });
+        view.ui.add(legendExpand, "bottom-left");
+
+        const statsDiv = document.getElementById("statsDiv");
+        const infoDiv = document.getElementById("infoDiv");
+        const infoDivExpand = new Expand({
+          collapsedIconClass: "esri-icon-collapse",
+          expandIconClass: "esri-icon-expand",
+          expandTooltip: "Expand logation info",
+          view: view,
+          content: infoDiv,
+          expanded: true
+        });
+        //view.ui.add(infoDivExpand, "top-right");
+      });
