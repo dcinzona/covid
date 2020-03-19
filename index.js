@@ -7,11 +7,12 @@ const esriData = require('./esri');
 
 app.use(compression());
 
+app.use(express.static('docs'))
 
 app.get("/", (req, res) => {
     res.sendFile('./docs/index.html', { root: __dirname });
 });
-
+/*
 app.get("/js/app.js", (req, res) => {
     res.sendFile('./docs/js/app.js', { root: __dirname });
 });
@@ -22,7 +23,7 @@ app.get("/css/styles.css", (req, res) => {
 app.get("/favicon\.(ico|png)", (req, res) => {
     res.sendFile('./docs/favicon.png', { root: __dirname });
 });
-
+*/
 // The data
 app.get("/data", (req, res) => {
     parser.run(function(data){
