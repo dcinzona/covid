@@ -338,17 +338,11 @@ require([
         }),
         expanded: false
     });
+    
     view.ui.add(legendExpand, "bottom-left");
 
     const statsDiv = document.getElementById("statsDiv");
-    const infoDiv = document.getElementById("infoDiv");
-    const infoDivExpand = new Expand({
-        collapsedIconClass: "esri-icon-collapse",
-        expandIconClass: "esri-icon-expand",
-        expandTooltip: "Expand logation info",
-        view: view,
-        content: titleDiv,
-        expanded: true
-    });
-    view.ui.add(infoDivExpand, "top-right");
+
+    view.ui.empty('top-left');
+    view.ui.add(titleDiv, "top-left");
 });
