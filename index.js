@@ -33,7 +33,7 @@ app.get("/data", (req, res) => {
 });
 
 // API versioning
-app.get("/api/v2/esri.geojson", (req, res) => {
+app.get("/api/v([0-9]+)/esri.geojson", (req, res) => {
     getEsriData(res);
 });
 

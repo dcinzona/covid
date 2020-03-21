@@ -3,13 +3,28 @@ const gmt_domainRoot = `${window.location.protocol}//${window.location.hostname 
 require([
     "esri/Map",
     "esri/views/MapView",
-    "esri/core/promiseUtils",
     "esri/layers/GeoJSONLayer",
     "esri/widgets/Slider",
     "esri/widgets/Expand",
     "esri/widgets/Legend",
-    `${gmt_domainRoot}/js/util.js`
-], function(Map, MapView, promiseUtils, GeoJSONLayer, Slider, Expand, Legend, util) {
+    `${gmt_domainRoot}/js/util.js`,
+    `${gmt_domainRoot}/js/tooltip.js`,
+    `${gmt_domainRoot}/js/popup.js`,
+    `${gmt_domainRoot}/js/renderer.js`,
+    `${gmt_domainRoot}/js/mobile.js`
+], function(
+    Map,
+    MapView,
+    GeoJSONLayer,
+    Slider,
+    Expand,
+    Legend,
+    util,
+    tooltip,
+    popup,
+    renderer,
+    mobile
+) {
     let layerView;
 
     const layer = new GeoJSONLayer({
@@ -17,117 +32,25 @@ require([
         copyright: "CDC / Johns Hopkins",
         title: "COVID-19 Cases over time",
         displayField: "place",
-        renderer: {
-            type: "simple",
-            field: "ct",
-            symbol: {
-                type: "simple-marker",
-                color: "#00ffff"
-            },
-            visualVariables: [
-                {
-                    type: "opacity",
-                    field: "ct",
-                    stops: [
-                        {
-                            value: 1,
-                            opacity: 0.7
-                        }
-                    ],
-                    legendOptions: {
-                        showLegend: false
-                    }
-                },
-                ,
-                {
-                    type: "size",
-                    minDataValue: 1,
-                    maxDataValue: 3000,
-                    minSize: 5,
-                    maxSize: 80,
-                    valueExpression: "$feature.ct * 1",
-                    valueExpressionTitle: "Confirmed Cases",
-                    valueUnit: "unknown"
-                },
-                {
-                    type: "color",
-                    valueExpression: "( $feature.ct / 1 ) * 1",
-                    valueExpressionTitle: "Confirmed Cases",
-                    stops: [
-                        { value: 1, color: "cyan" },
-                        //{ value: 800, color: "#98d1d1" },
-                        { value: 1600, color: "#ffed85" },
-                        //{ value: 3500, color: "#df979e" },
-                        { value: 3500, color: "#c80064" }
-                    ],
-                    legendOptions: {
-                        showLegend: true
-                    }
-                }
-            ]
-        },
-        popupTemplate: {
-            title: "{title}",
-            content: [
-                {
-                    type: "fields",
-                    fieldInfos: [
-                        {
-                            fieldName: "place",
-                            label: "Location",
-                            visible: true
-                        },
-                        {
-                            fieldName: "ct",
-                            label: "Confirmed",
-                            visible: true
-                        },
-                        {
-                            fieldName: "coords",
-                            label: "Coordinates",
-                            visible: true
-                        },
-                        {
-                            fieldName: "dateString",
-                            label: "Reported On",
-                            visible: true
-                        }
-                    ]
-                }
-            ]
-        }
+        renderer: renderer,
+        popupEnabled: false,
+        outFields: ["*"]
     });
 
-    const clusterConfig = {
-        type: "cluster",
-        clusterRadius: "40px",
-        popupTemplate: {
-            content: [
-                {
-                    type: "text",
-                    text:
-                        "This cluster represents <b>{cluster_count}</b> locations."
-                }
-            ]
-        }
-    };
-    /* */
-    //layer.featureReduction = clusterConfig;
-    /* */
     const map = new Map({
-        basemap: "dark-gray",
+        basemap: "dark-gray-vector",
         layers: [layer]
     });
 
     var view = new MapView({
         map: map,
         container: "viewDiv",
-        zoom: 3,
+        zoom: 2,
         center: [5, 35] //[-117.50268, 34.04713]
     });
 
     view.constraints = {
-        minZoom: 2, // User cannot zoom out beyond a scale of 1:500,000
+        minZoom: 1, // User cannot zoom out beyond a scale of 1:500,000
         maxZoom: 8, // User can overzoom tiles
         rotationEnabled: false // Disables map rotation
     };
@@ -186,10 +109,16 @@ require([
         Sum_confirmed: "Total Confirmed"
     };
 
+    
     // wait till the layer view is loaded
     view.whenLayerView(layer).then(function(lv) {
         layerView = lv;
         setDate(startDate);
+
+        if(!mobile.isMobile()){
+            tooltip.setupHoverTooltip(layerView, view, layer);
+            popup.init(layerView, view, layer);
+        }
     });
 
     function setDate(value) {
@@ -227,7 +156,9 @@ require([
                             "<br/><div><span>" +
                             result.features[0].attributes["record_count"] +
                             "</span> locations reporting on <b>" +
-                            util.convertToDateString(slider.viewModel.values[0]);
+                            util.convertToDateString(
+                                slider.viewModel.values[0]
+                            );
                         ("</b>.</div><br/>");
 
                         if (htmls[0] == undefined) {
@@ -262,10 +193,7 @@ require([
             startAnimation();
         }
     });
-
-    /**
-     * Starts the animation that cycle
-     */
+    
     function startAnimation() {
         stopAnimation();
         if (
@@ -277,10 +205,6 @@ require([
         animation = animate(slider.values[0]);
         playButton.classList.add("toggled");
     }
-
-    /**
-     * Stops the animations
-     */
     function stopAnimation() {
         if (!animation) {
             return;
@@ -290,10 +214,6 @@ require([
         animation = null;
         playButton.classList.remove("toggled");
     }
-
-    /**
-     * Animates the color visual variable continously
-     */
     function animate(startValue) {
         var animating = true;
         var value = startValue;
@@ -338,11 +258,12 @@ require([
         }),
         expanded: false
     });
-    
-    view.ui.add(legendExpand, "bottom-left");
 
     const statsDiv = document.getElementById("statsDiv");
 
-    view.ui.empty('top-left');
-    view.ui.add(titleDiv, "top-left");
+    view.ui.empty("top-left");
+    view.ui.add(titleDiv,'top-left');
+
+    mobile.init(view, legendExpand);
+
 });

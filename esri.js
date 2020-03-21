@@ -60,7 +60,8 @@ class properties {
     ct;
     place;
     time;
-    title;
+    //title;
+    country;
     dateString;
     coords;
     constructor(rec){
@@ -68,8 +69,9 @@ class properties {
         this.place = rec.Label.trim();
         this.time = Date.parse(rec.Date);
         this.dateString = this.convertToDateString(this.time);
-        this.title = this.place.trim();
+        //this.title = this.place.trim();
         this.coords = rec.Location;
+        this.country = rec.Country;
     }
     convertToDateString = function (value) {
         //YYYY-MM-DD  
