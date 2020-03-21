@@ -11,7 +11,7 @@ define([], function() {
         return `${year}-${month}-${dayOfMonth}`;
     }
     
-    let apiVersion = "v2";
+    let apiVersion = "v3";
     const dataUrl =
         window.location.hostname == "localhost"
             ? `/api/${apiVersion}/esri.geojson`
