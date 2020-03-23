@@ -38,7 +38,8 @@ function process(data, callback) {
             }
         },
         function(err, output) {
-            callback(etl);
+            let sorted = etl.sort(sorter);
+            callback(sorted);
         }
     );
 }
@@ -87,6 +88,19 @@ convertToDateString = function(value) {
     dayOfMonth = dayOfMonth < 10 ? "0" + dayOfMonth : dayOfMonth;
     return `${year}-${month}-${dayOfMonth}`;
 };
+
+sorter = function(a, b) {
+    aTime = new Date(a.IsoDate).getTime();
+    bTime = new Date(b.IsoDate).getTime();
+    if (aTime > bTime) {
+        return 1;
+    } else if (aTime < bTime) {
+        return -1;
+    } else {
+        return 0;
+    }
+};
+
 exports.run(function(d) {
     console.log(d[d.length - 1]);
     console.log(d.length);

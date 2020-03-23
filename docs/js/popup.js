@@ -3,134 +3,28 @@ define([
     "esri/popup/content",
     "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"
 ], function(promiseUtils, content, Chart) {
-    let layerview, view, layer, selectedCountry, chartWrapper;
+    let layerview, view, layer, selectedCountry, chartWrapper, setDate;
 
-    function init(lv, v, l) {
+    function init(lv, v, l, s) {
         layerview = lv;
         view = v;
         layer = l;
+        setDate = s;
         chartWrapper = document.getElementById("chartWrapper");
 
-        var hitTest = promiseUtils.debounce(function(event) {
-            return view.hitTest(event).then(function(hit) {
-                var results = hit.results.filter(function(result) {
-                    return result.graphic.layer === layer;
-                });
-
-                if (!results.length) {
-                    return null;
-                }
-
-                return {
-                    graphic: results[0].graphic,
-                    screenPoint: hit.screenPoint
-                };
-            });
-        });
-
-        function hide() {
-            if (view.popup.visible) {
-                view.popup.close();
-                chartWrapper.classList.remove("visible");
-                console.log("hiding");
-            }
-        }
-
-        function show(features) {
-            /* */
-            updateChart(rateChart, features);
-            let title = `Spread in <span>${selectedCountry}</span>`;
-            view.popup.title = title;
-            if (!view.popup.visible) {
-                console.log("showing");
-                view.popup.open({
-                    actions: [],
-                    autoCloseEnabled: true,
-                    dockEnabled: true,
-                    dockOptions: {
-                        position: "top-right"
-                    },
-                    content: chartWrapper
-                });
-                chartWrapper.classList.add("visible");
-            }
-
-            /* */
-        }
-
-        function getStatQuery() {
-            const query = layer.createQuery();
-            query.outStatistics = [
-                {
-                    onStatisticField: "ct",
-                    outStatisticFieldName: "sum_confirmed",
-                    statisticType: "sum"
-                },
-                {
-                    onStatisticField: "ct",
-                    outStatisticFieldName: "max_confirmed",
-                    statisticType: "max"
-                },
-                {
-                    onStatisticField: "1=1",
-                    outStatisticFieldName: "total_places",
-                    statisticType: "count"
-                }
-            ];
-            query.returnDistinctValues = true;
-            query.groupByFieldsForStatistics = ["dateString"];
-            query.orderByFields = ["dateString ASC"];
-            return query;
-        }
-
-        function runQuery(event) {
-            event.stopPropagation();
-            hitTest(event).then(function(hit) {
-                //exit if miss
-                if (!hit) {
-                    hide();
-                    return;
-                }
-
-                selectedCountry = hit.graphic.attributes.country;
-
-                if (selectedCountry) {
-                    const queryParams = getStatQuery();
-                    queryParams.where = " country = '" + selectedCountry + "'";
-                    queryParams.outFields = ["*"];
-                    //console.log(queryParams);
-                    // query the layer with the modified params object
-                    layer.queryFeatures(queryParams).then(function(results) {
-                        // prints the array of result graphics to the console
-                        let sorted = results.features.sort(function(a, b) {
-                            aTime = new Date(a.attributes.dateString).getTime();
-                            bTime = new Date(b.attributes.dateString).getTime();
-                            if (aTime > bTime) {
-                                return 1;
-                            } else if (aTime < bTime) {
-                                return -1;
-                            } else {
-                                return 0;
-                            }
-                        });
-                        //console.log(sorted);
-                        show(sorted);
-                    });
-                } else {
-                    //hide histogram
-                    hide();
-                }
-            });
-        }
         view.on("click", runQuery);
+
         createChart();
         /* */
+        view.popup.actions = [];
         view.popup.autoOpenEnabled = false;
         view.popup.autoCloseEnabled = true;
         view.popup.dockEnabled = true;
         view.popup.dockOptions = {
+            breakpoint: false,
             buttonEnabled: false,
-            position: "top-right"
+            position: "bottom-right",
+            content: chartWrapper
         };
         view.popup.featureNavigationEnabled = false;
         /* */
@@ -167,11 +61,99 @@ define([
         content: fields
     };
 
+    var hitTest = promiseUtils.debounce(function(event) {
+        return view.hitTest(event).then(function(hit) {
+            var results = hit.results.filter(function(result) {
+                return result.graphic.layer === layer;
+            });
+
+            if (!results.length) {
+                return null;
+            }
+
+            return {
+                graphic: results[0].graphic,
+                screenPoint: hit.screenPoint,
+                mapPoint: results[0].mapPoint
+            };
+        });
+    });
+
+    function hide() {
+        if (view.popup.visible) {
+            view.popup.close();
+            chartWrapper.classList.remove("visible");
+            console.log("hiding");
+        }
+    }
+
+    function show(features, hit) {
+        /* */
+        updateChart(rateChart, features);
+        let title = `Spread in <span>${selectedCountry}</span>`;
+        view.popup.title = title;
+        if (!view.popup.visible) {
+            console.log("showing");
+            /*
+            view.popup.open({
+                location: hit.mapPoint,
+                collapsed: false,
+                content: chartWrapper
+            });
+            */
+            view.popup.location = hit.mapPoint;
+            view.popup.visible = true;
+            view.popup.content = chartWrapper;
+            view.popup.collapsed = false;
+            chartWrapper.classList.add("visible");
+        }
+
+        /* */
+    }
+
+    function getStatQuery() {
+        const query = layer.createQuery();
+        query.outStatistics = [
+            {
+                onStatisticField: "ct",
+                outStatisticFieldName: "sum_confirmed",
+                statisticType: "sum"
+            },
+            {
+                onStatisticField: "ct",
+                outStatisticFieldName: "max_confirmed",
+                statisticType: "max"
+            },
+            {
+                onStatisticField: "1=1",
+                outStatisticFieldName: "total_places",
+                statisticType: "count"
+            }
+        ];
+        query.returnDistinctValues = true;
+        query.groupByFieldsForStatistics = ["dateString"];
+        query.orderByFields = ["dateString ASC"];
+        return query;
+    }
+
+    function sorter(a, b) {
+        aTime = new Date(a.attributes.dateString).getTime();
+        bTime = new Date(b.attributes.dateString).getTime();
+        if (aTime > bTime) {
+            return 1;
+        } else if (aTime < bTime) {
+            return -1;
+        } else {
+            return 0;
+        }
+    }
+
     function updateChart(chart, features) {
         rateChart.data.labels = features.map(e => e.attributes.dateString);
         rateChart.data.datasets[0].data = features.map(
             e => e.attributes.sum_confirmed
         );
+        //rateChart.data.datasets[0].label = `${selectedCountry} (Total Cases)`;
         rateChart.update();
     }
 
@@ -183,7 +165,7 @@ define([
                 labels: [],
                 datasets: [
                     {
-                        label: "Confirmed Cases",
+                        label: `Confirmed Cases`,
                         showLine: true,
                         fill: false,
                         spanGaps: true,
@@ -197,16 +179,85 @@ define([
             },
             options: {
                 responsive: true,
+                aspectRatio: 1.5,
                 legend: {
-                    display: false
+                    display: false,
+                    onClick: null
+                },
+                onClick: function(e) {
+                    var firstPoint = rateChart.getElementAtEvent(e)[0];
+
+                    if (firstPoint) {
+                        var label = rateChart.data.labels[firstPoint._index];
+                        if (setDate) {
+                            setDate(new Date(label).getTime());
+                        }
+                    }
+                },
+                tooltips: {
+                    callbacks: {
+                        label: function(tooltipItem, data) {
+                            var label =
+                                data.datasets[tooltipItem.datasetIndex].label ||
+                                "";
+
+                            if (label) {
+                                label += ": ";
+                            }
+                            label += tooltipItem.yLabel;
+
+                            return label;
+                        },
+                        afterLabel: function(tooltipItem, data) {
+                            let label = "";
+                            let dsi = tooltipItem.datasetIndex;
+                            let ds = data.datasets[dsi];
+                            let i = tooltipItem.index;
+                            //console.log(data);
+                            if (i >= 1) {
+                                let maths = ds.data[i] - ds.data[i - 1];
+                                return `Delta: ${(maths > 0 ? "+" : "") +
+                                    maths}`;
+                            }
+                            return null;
+                        }
+                    }
                 }
             }
         });
         //view.popup.content = document.getElementById("rateChart");
     }
+    let runQuery = function(event) {
+        //event.stopPropagation();
+        hitTest(event).then(function(hit) {
+            //exit if miss
+            if (!hit) {
+                //hide(); //commenting out to leave stats up when deselecting
+                return;
+            }
 
+            selectedCountry = hit.graphic.attributes.country;
+
+            if (selectedCountry) {
+                const queryParams = getStatQuery();
+                queryParams.where = " country = '" + selectedCountry + "'";
+                //queryParams.outFields = ["*"];
+                //console.log(queryParams);
+                // query the layer with the modified params object
+                layer.queryFeatures(queryParams).then(function(results) {
+                    // prints the array of result graphics to the console
+                    let sorted = results.features.sort(sorter);
+                    show(sorted, hit);
+                });
+            } else {
+                //hide histogram
+                hide();
+            }
+        });
+    };
     return {
         init: init,
+        onClick: runQuery,
         template: popupTemplate
     };
 });

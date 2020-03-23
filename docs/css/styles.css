@@ -14,6 +14,7 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    top: 0;
 }
 
 #viewDiv {
@@ -28,11 +29,8 @@ body {
     font-style: normal;
     font-size: 1.2019rem;
     padding: 10px;
-    width: 280px;
-    position: absolute;
     left: 1em;
     top: 1em;
-    max-width: 80vw;
 }
 
 #updateNote {
@@ -41,7 +39,8 @@ body {
     opacity: 0.8;
 }
 
-#statsDiv span, .esri-popup__header-title span {
+#statsDiv span,
+.esri-popup__header-title span {
     color: #f9c653;
     font-size: 12pt;
     font-weight: bolder;
@@ -139,11 +138,21 @@ body {
 .esri-view-width-less-than-small .esri-zoom .esri-widget--button {
     display: none;
 }
-#chartWrapper{
-  position: relative;
-  display: none;
-  margin-top: 1em;
+#chartWrapper {
+    position: relative;
+    display: none;
+    margin-top: 1em;
 }
-#chartWrapper.visible{
-  display: block;
+#chartWrapper.visible {
+    display: block;
+}
+
+.esri-view-width-less-than-medium.esri-view-height-greater-than-xsmall .esri-popup {
+    width: 100%;
+    margin:0;
+}
+
+.esri-view-width-less-than-medium.esri-view-height-greater-than-xsmall .esri-popup__main-container {
+    max-height: 500px;
+    width: 100%;
 }

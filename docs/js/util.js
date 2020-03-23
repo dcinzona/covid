@@ -3,7 +3,7 @@ define([], function() {
     function convertToDateString(value){
         //YYYY-MM-DD
         let date = new Date(value);
-        let dayOfMonth = date.getDate();
+        let dayOfMonth = date.getUTCDate();
         let month = date.getMonth() + 1;
         let year = date.getFullYear();
         month = month < 10 ? "0" + month : month;

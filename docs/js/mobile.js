@@ -12,12 +12,12 @@ define([], function() {
         if (isMobile) {
             document.querySelector("#titleDiv").classList.add("invisible");
             view.padding = {
-                top: 0
+                //top: 0
             };
         } else {
             document.querySelector("#titleDiv").classList.remove("invisible");
             view.padding = {
-                top: 55
+                //top: 55
             };
         }
     }

@@ -61,13 +61,12 @@ require([
     var updateNote = document.getElementById("updateNote");
     var animation = null;
 
-    const startDate = new Date(2020, 0, 22).getTime();
+    const startDate = new Date("2020-01-22").getTime();
     const nextUpdate = new Date(new Date().toLocaleDateString() + " 23:59 UTC");
     var hrs = new Date().getTime() < nextUpdate.getTime() ? 21 : 0;
     const endDate = new Date().getTime() - 3600 * 1000 * hrs;
 
     var nextupdHrs = nextUpdate.getHours();
-    console.log(nextUpdate.toLocaleString());
     updateNote.innerText = "Next update: " + nextUpdate.toLocaleString();
 
     //view.ui.empty("top-left");
@@ -115,11 +114,17 @@ require([
         layerView = lv;
         setDate(startDate);
 
+        layerView.queryFeatures().then(function(results){
+            console.log(results.features);
+        });
+
         if(!mobile.isMobile()){
             tooltip.setupHoverTooltip(layerView, view, layer);
-            popup.init(layerView, view, layer);
         }
+        
+        popup.init(layerView, view, layer, setDate);
     });
+
 
     function setDate(value) {
         var dateStr = util.convertToDateString(value);
