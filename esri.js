@@ -27,7 +27,7 @@ module.exports = class payload {
         this.features = [];
         console.log(data.length);
         data.forEach(rec => {
-            let time = Date.parse(rec.Date);
+            let time = Date.parse(rec.IsoDate);
             if(time){
                 this.features.push(new feature(rec));
             }
@@ -67,20 +67,9 @@ class properties {
     constructor(rec){
         this.ct = parseInt(rec.Confirmed);
         this.place = rec.Label.trim();
-        this.time = Date.parse(rec.Date);
-        this.dateString = this.convertToDateString(this.time);
-        //this.title = this.place.trim();
+        this.time = Date.parse(rec.IsoDate);
+        this.dateString = rec.IsoDate;
         this.coords = rec.Location;
         this.country = rec.Country;
     }
-    convertToDateString = function (value) {
-        //YYYY-MM-DD  
-        let date = new Date(value);
-        let dayOfMonth = date.getDate();
-        let month = date.getMonth() + 1;
-        let year = date.getFullYear();
-        month = month < 10 ? '0' + month : month;
-        dayOfMonth = dayOfMonth < 10 ? '0' + dayOfMonth : dayOfMonth;
-        return `${year}-${month}-${dayOfMonth}`
-      }
 }
