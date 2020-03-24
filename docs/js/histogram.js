@@ -80,11 +80,11 @@ define([
                     const queryParams = getStatQuery();
                     queryParams.where = " country = '" + country + "'";
 
-                    console.log(queryParams);
+                    //console.log(queryParams);
                     // query the layer with the modified params object
                     layer.queryFeatures(queryParams).then(function(results) {
                         // prints the array of result graphics to the console
-                        console.log(results.features);
+                        //console.log(results.features);
                         show(results.features);
                     });
                 } else {

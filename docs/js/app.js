@@ -1,4 +1,8 @@
-const gmt_domainRoot = `${window.location.protocol}//${window.location.hostname == 'localhost' ? 'localhost:3000' : window.location.hostname}`;
+const gmt_domainRoot = `${window.location.protocol}//${
+    window.location.hostname == "localhost"
+        ? "localhost:3000"
+        : window.location.hostname
+}`;
 
 require([
     "esri/Map",
@@ -62,15 +66,9 @@ require([
     var animation = null;
 
     const startDate = new Date("2020-01-22").getTime();
-    const nextUpdate = new Date(new Date().toLocaleDateString() + " 23:59 UTC");
-    var hrs = new Date().getTime() < nextUpdate.getTime() ? 21 : 0;
-    const endDate = new Date().getTime() - 3600 * 1000 * hrs;
+    let endDate = util.endDate;
 
-    var nextupdHrs = nextUpdate.getHours();
-    updateNote.innerText = "Next update: " + nextUpdate.toLocaleString();
-
-    //view.ui.empty("top-left");
-    //view.ui.add(titleDiv, "top-left");
+    updateNote.innerText = "Next update: " + util.nextUpdate.toLocaleString();
 
     const slider = new Slider({
         container: "slider",
@@ -78,9 +76,10 @@ require([
         max: endDate,
         values: [startDate],
         step: 86400, //seconds in a day
-        rangeLabelsVisible: true,
+        rangeLabelsVisible: false,
         precision: 0,
-        labelsVisible: true
+        labelsVisible: false,
+        disabled: true
     });
 
     slider.labelFormatFunction = function(value, type) {
@@ -96,6 +95,13 @@ require([
         precision: 0
     };
 
+    const maxTime = {
+        onStatisticField: "time",
+        outStatisticFieldName: "Max_time",
+        statisticType: "max",
+        precision: 0
+    };
+
     const placesCount = {
         onStatisticField: "1=1",
         outStatisticFieldName: "record_count",
@@ -105,26 +111,42 @@ require([
 
     const statsFields = {
         record_count: "Places Reporting",
-        Sum_confirmed: "Total Confirmed"
+        Sum_confirmed: "Total Confirmed",
+        Max_time: "Last Updated"
     };
 
-    
     // wait till the layer view is loaded
     view.whenLayerView(layer).then(function(lv) {
         layerView = lv;
-        setDate(startDate);
 
-        layerView.queryFeatures().then(function(results){
-            console.log(results.features);
+        //const q = layerView.createQuery();
+        //q.outStatistics = [maxTime];
+        layer.queryFeatures().then(function(results) {
+            let last = results.features[results.features.length - 1].attributes;
+            endDate = last.time;
+            slider.max = last.time;
+            slider.disabled = false;
+            slider.labelsVisible = true;
+            slider.rangeLabelsVisible = true;
+            setDate(endDate).then(function() {
+                slider.on("thumb-drag", inputHandler);
+                playButton.addEventListener("click", function() {
+                    if (playButton.classList.contains("toggled")) {
+                        stopAnimation();
+                    } else {
+                        startAnimation();
+                    }
+                });
+                playButton.classList.remove("disabled");
+            });
         });
 
-        if(!mobile.isMobile()){
+        if (!mobile.isMobile()) {
             tooltip.setupHoverTooltip(layerView, view, layer);
         }
-        
+
         popup.init(layerView, view, layer, setDate);
     });
-
 
     function setDate(value) {
         var dateStr = util.convertToDateString(value);
@@ -136,7 +158,7 @@ require([
         const statQuery = layerView.filter.createQuery();
         statQuery.outStatistics = [magSum, placesCount];
 
-        layer
+        return layer
             .queryFeatures(statQuery)
             .then(function(result) {
                 let htmls = [];
@@ -187,18 +209,6 @@ require([
         setDate(event.value);
     }
 
-    slider.on("thumb-drag", inputHandler);
-
-    // Toggle animation on/off when user
-    // clicks on the play button
-    playButton.addEventListener("click", function() {
-        if (playButton.classList.contains("toggled")) {
-            stopAnimation();
-        } else {
-            startAnimation();
-        }
-    });
-    
     function startAnimation() {
         stopAnimation();
         if (
@@ -228,10 +238,11 @@ require([
                 return;
             }
 
-            value += 86400 * 90;
+            value += 86400 * 120;
             if (value >= endDate) {
                 value = startDate;
                 stopAnimation();
+                setDate(endDate);
                 return;
             }
 
@@ -240,7 +251,7 @@ require([
             // Update at 30fps
             setTimeout(function() {
                 requestAnimationFrame(frame);
-            }, 1000 / 60);
+            }, 1000 / 30);
         };
 
         frame();
@@ -267,8 +278,7 @@ require([
     const statsDiv = document.getElementById("statsDiv");
 
     view.ui.empty("top-left");
-    view.ui.add(titleDiv,'top-left');
+    view.ui.add(titleDiv, "top-left");
 
     mobile.init(view, legendExpand);
-
 });

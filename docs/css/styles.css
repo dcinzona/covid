@@ -87,6 +87,10 @@ body {
     margin: 20px 0;
 }
 
+#playButton.disabled{
+    cursor: wait;
+}
+
 .toggle-button {
     display: flex;
 }
@@ -99,6 +103,11 @@ body {
 .toggle-button .toggle-button-icon {
     color: #1bcc1b;
     font-size: 40px;
+}
+
+.toggle-button.disabled .toggle-button-icon  {
+    color: gray;
+    opacity: .7;
 }
 
 .toggle-button > :nth-child(2) {
