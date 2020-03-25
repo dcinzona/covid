@@ -38,7 +38,7 @@ define([], function() {
     const dataUrl =
         window.location.hostname == "localhost"
             ? `/api/${apiVersion}/esri2.geojson`
-            : `https://covid-data.gmt.io/api/${apiVersion}/esri.geojson`;
+            : `https://covid-data.gmt.io/api/${apiVersion}/esri2.geojson`;
 
     return {
         convertToDateString: convertToDateString,
