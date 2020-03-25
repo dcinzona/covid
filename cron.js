@@ -20,7 +20,7 @@ let spm = 60;
 let m_15 = spm * 15;
 let secondsPerHour = m_15 * 4;
 
-if (process.env.PROD == true || process.env.CRON == true) {
+if (process.env.ENV == 'PROD') {
     cron(m_15 * 1000, function() {
         run();
     });
