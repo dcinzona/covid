@@ -3,6 +3,7 @@ const csv = require("csv");
 const parse = require("csv-parse/lib/sync");
 const states = require("./states_hash");
 const stateCoords = require("./USstates_avg_latLong");
+const firstBy = require("thenby");
 require("dotenv").config();
 
 let repo = process.env.COVID_REPO_DIR;
@@ -23,7 +24,9 @@ function processFiles(files, callback) {
         console.info("******** Starting: " + fname);
 
         let d = fs.readFileSync(`${filepath}${fname}.csv`).toString("utf8");
-        let recs = parse(d, { columns: true });
+        let recs = parse(d, { columns: true }).filter(x => {
+            return parseInt(x.Confirmed) >= 1;
+        });
         //console.log(recs.length);
         for (let i = 0; i < recs.length; i++) {
             //console.log(index);
@@ -57,10 +60,12 @@ function processRecord(record, fname) {
 
         if (record.Lat != undefined) {
             if (record.Combined_Key && !recMap[record.Combined_Key]) {
-                recMap[record.Combined_Key] = {
-                    Lat: record.Lat,
-                    Long_: record.Long_
-                };
+                if (record.Combined_Key.indexOf("Unassigned, ") === -1) {
+                    recMap[record.Combined_Key] = {
+                        Lat: record.Lat,
+                        Long_: record.Long_
+                    };
+                }
             }
         } else {
             if (recMap[record.Combined_Key]) {
@@ -144,17 +149,25 @@ function setCombined(record) {
                 "Travis, CA",
                 "Lackland, TX"
             ];
-            if (fromDiamondPrincess.includes(record.Province_State)) {
-                record.Province_State += " (From Diamond Princess)";
-            } else {
-                let spl = record.Province_State.split(",");
-                if (spl.length > 1) {
-                    let lngSt = states.hash[spl[1].trim()];
-                    if (lngSt) {
-                        record.Province_State = lngSt;
+            if (record.Province_State) {
+                if (fromDiamondPrincess.includes(record.Province_State)) {
+                    record.Province_State += " (From Diamond Princess)";
+                } else {
+                    //check for things like 'Kings County, PA'
+                    let spl = record.Province_State.split(",");
+                    if (spl.length > 1) {
+                        let lngSt = states.hash[spl[1].trim()];
+                        if (lngSt) {
+                            record.Province_State = lngSt;
+                        }
+                    }
+                    //stored non-standard in source
+                    if (
+                        record.Province_State.indexOf("Virgin Islands") !== -1
+                    ) {
+                        record.Province_State = "Virgin Islands";
                     }
                 }
-                //set generic lat / lng per state
             }
             break;
     }
@@ -166,16 +179,6 @@ function setCombined(record) {
         record.Combined_Key = `Diamond Princess, ${record.Country_Region}`;
         record.Lat = 0;
         record.Long_ = 0;
-    }
-
-    if (
-        record.Country_Region == "US" &&
-        record.Province_State != null &&
-        record.Province_State.indexOf(",") !== -1
-    ) {
-        if (record.Province_State.indexOf("Virgin Islands") !== -1) {
-            record.Province_State = "Virgin Islands";
-        }
     }
 
     return normalizeCombinedKey(record);
@@ -204,9 +207,6 @@ function normalizeCombinedKey(record) {
             break;
         case "France, France":
             record.Combined_Key = "France";
-            break;
-        case "New York, US":
-            //record.Combined_Key = "New York City, New York, US";
             break;
         case "Chicago, US":
             record.Combined_Key = "Illinois, US";
@@ -240,11 +240,6 @@ function normalizeCombinedKey(record) {
                 Long_: record.Long_
             };
             break;
-        case undefined:
-            if (record.Province_State != null) {
-                record.Combined_Key = `${record.Province_State}, ${record.Country_Region}`;
-            } else record.Combined_Key = record.Country_Region;
-            break;
     }
     record.Combined_Key = record.Combined_Key.trim();
     return record;
@@ -269,58 +264,77 @@ function getTomorrow(value) {
 
 function processRecords() {
     let sorted = records
-        .filter(it => {
-            return it.Combined_Key != "US, US";
+        .filter(x => {
+            return x.Combined_Key != "US, US";
         })
         .map(x => {
             x = normalizeCombinedKey(x);
+            //fixing issue where combined key exists and includes 'Unassigned'
+            if (x.Combined_Key.startsWith("Unassigned")) {
+                console.log(`[${x.IsoDate}] ${x.Combined_Key} ${x.Confirmed}`);
+                x.Combined_Key = x.Combined_Key.replace("Unassigned, ", "");
+            }
+            //fix combined keys that include us county (reduce to just state, country)
             let spl = x.Combined_Key.split(",");
             x.Combined_Key =
                 spl.length > 2
                     ? `${spl[1].trim()}, ${spl[2].trim()}`
                     : x.Combined_Key;
-            x.Lat = recMap[x.Combined_Key] ? recMap[x.Combined_Key].Lat : x.Lat;
-            x.Long_ = recMap[x.Combined_Key]
-                ? recMap[x.Combined_Key].Long_
-                : x.Long_;
 
+            //update coordinates based on state
+            x.Lat =
+                x.Combined_Key in recMap ? recMap[x.Combined_Key].Lat : x.Lat;
+            x.Long_ =
+                x.Combined_Key in recMap
+                    ? recMap[x.Combined_Key].Long_
+                    : x.Long_;
+
+            //set unique identifiers
             x.Location = `${x.Lat},${x.Long_}`;
             x.UID = `${x.IsoDate}:${x.Location}`;
             x.UID2 = `${x.Combined_Key}:${x.IsoDate}`;
 
             return x;
-        });
+        })
+        .sort(firstBy("time"));
 
-    var result = [];
-    sorted.reduce(function(res, value) {
-        if (!res[value.UID]) {
-            res[value.UID] = value;
-            result.push(res[value.UID]);
-        }
-        if (
-            //because they changed how the US reports data to include counties for some reason.
-            new Date(value.time) >= new Date("2020-03-23") &&
-            value.Country_Region == "US"
-        ) {
-            res[value.UID].Confirmed += value.Confirmed;
-        }
-        return res;
-    }, {});
+    logging(sorted);
 
-    return result.sort(sorter);
+    var result = Object.values(
+        sorted.reduce(function(r, e) {
+            var key = e.UID2;
+            if (!r[key]) r[key] = e;
+            else {
+                r[key].Confirmed += e.Confirmed;
+            }
+            return r;
+        }, {})
+    );
+    return result;
 }
 
-sorter = function(a, b) {
-    aTime = a.time;
-    bTime = b.time;
-    if (aTime > bTime) {
-        return 1;
-    } else if (aTime < bTime) {
-        return -1;
-    } else {
-        return 0;
+function logging(recs) {
+    if (false) {
+        console.log("Record: 0");
+        console.log(recs[0]);
+        console.log("Record: " + (recs.length - 1));
+        console.log(recs[recs.length - 1]);
     }
-};
+    if (false) {
+        let usTotal = recs
+            .filter(x => {
+                return x.Country_Region == "US";
+            })
+            .reduce(function(usTotal, datum) {
+                let date = datum.IsoDate;
+                let ct = datum.Confirmed;
+                let group = date;
+                usTotal[group] = (usTotal[group] || 0) + ct;
+                return usTotal;
+            }, {});
+        console.log(usTotal);
+    }
+}
 
 exports.makeCsv = function(recs, callback) {
     csv.stringify(

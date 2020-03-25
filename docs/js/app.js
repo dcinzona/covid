@@ -30,7 +30,7 @@ require([
     mobile
 ) {
     let layerView;
-
+    
     const layer = new GeoJSONLayer({
         url: util.dataUrl,
         copyright: "CDC / Johns Hopkins",
@@ -40,6 +40,7 @@ require([
         popupEnabled: false,
         outFields: ["*"]
     });
+    
 
     const map = new Map({
         basemap: "dark-gray-vector",
@@ -118,26 +119,26 @@ require([
     // wait till the layer view is loaded
     view.whenLayerView(layer).then(function(lv) {
         layerView = lv;
-
-        //const q = layerView.createQuery();
-        //q.outStatistics = [maxTime];
-        layer.queryFeatures().then(function(results) {
-            let last = results.features[results.features.length - 1].attributes;
-            endDate = last.time;
-            slider.max = last.time;
-            slider.disabled = false;
-            slider.labelsVisible = true;
-            slider.rangeLabelsVisible = true;
-            setDate(endDate).then(function() {
-                slider.on("thumb-drag", inputHandler);
-                playButton.addEventListener("click", function() {
-                    if (playButton.classList.contains("toggled")) {
-                        stopAnimation();
-                    } else {
-                        startAnimation();
-                    }
+        setDate(endDate).then(function() {
+            layer.queryFeatures().then(function(results) {
+                let last =
+                    results.features[results.features.length - 1].attributes;
+                endDate = last.time;
+                slider.max = last.time;
+                slider.disabled = false;
+                slider.labelsVisible = true;
+                slider.rangeLabelsVisible = true;
+                setDate(endDate).then(function() {
+                    slider.on("thumb-drag", inputHandler);
+                    playButton.addEventListener("click", function() {
+                        if (playButton.classList.contains("toggled")) {
+                            stopAnimation();
+                        } else {
+                            startAnimation();
+                        }
+                    });
+                    playButton.classList.remove("disabled");
                 });
-                playButton.classList.remove("disabled");
             });
         });
 
@@ -160,45 +161,47 @@ require([
 
         return layer
             .queryFeatures(statQuery)
-            .then(function(result) {
-                let htmls = [];
-                statsDiv.innerHTML = "";
-                if (result.error) {
-                    return result.error;
-                } else {
-                    if (result.features.length >= 1) {
-                        var attributes = result.features[0].attributes;
-                        for (name in statsFields) {
-                            if (attributes[name] && attributes[name] != null) {
-                                const html =
-                                    "<div>" +
-                                    statsFields[name] +
-                                    ": <b><span> " +
-                                    attributes[name].toFixed(0) +
-                                    "</span></b></div>";
-                                htmls.push(html);
-                            }
-                        }
-                        var statsHtml =
-                            "<br/><div><span>" +
-                            result.features[0].attributes["record_count"] +
-                            "</span> locations reporting on <b>" +
-                            util.convertToDateString(
-                                slider.viewModel.values[0]
-                            );
-                        ("</b>.</div><br/>");
+            .then(updateTitleDiv)
+            .catch(logError);
+    }
 
-                        if (htmls[0] == undefined) {
-                            statsDiv.innerHTML = statsHtml;
-                        } else {
-                            statsDiv.innerHTML = htmls[1] + statsHtml;
-                        }
+    function logError(error) {
+        console.error(error);
+    }
+
+    function updateTitleDiv(result) {
+        let htmls = [];
+        statsDiv.innerHTML = "";
+        if (result.error) {
+            return result.error;
+        } else {
+            if (result.features.length >= 1) {
+                var attributes = result.features[0].attributes;
+                for (name in statsFields) {
+                    if (attributes[name] && attributes[name] != null) {
+                        const html =
+                            "<div>" +
+                            statsFields[name] +
+                            ": <b><span> " +
+                            attributes[name].toFixed(0) +
+                            "</span></b></div>";
+                        htmls.push(html);
                     }
                 }
-            })
-            .catch(function(error) {
-                console.log(error);
-            });
+                var statsHtml =
+                    "<br/><div><span>" +
+                    result.features[0].attributes["record_count"] +
+                    "</span> locations reporting on <b>" +
+                    util.convertToDateString(slider.viewModel.values[0]);
+                ("</b>.</div><br/>");
+
+                if (htmls[0] == undefined) {
+                    statsDiv.innerHTML = statsHtml;
+                } else {
+                    statsDiv.innerHTML = htmls[1] + statsHtml;
+                }
+            }
+        }
     }
 
     // When user drags the slider:

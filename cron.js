@@ -20,9 +20,11 @@ let spm = 60;
 let m_15 = spm * 15;
 let secondsPerHour = m_15 * 4;
 
-cron(m_15 * 1000, function() {
-    run();
-});
+if (process.env.PROD == true || process.env.CRON == true) {
+    cron(m_15 * 1000, function() {
+        run();
+    });
+}
 
 run();
 
@@ -57,13 +59,8 @@ function run() {
                         r.UID2 = x.UID2;
                         return r;
                     });
-                    console.log(recs[records.length - 1]);
-                    console.log(recs[0]);
                     save("./data.json", JSON.stringify(recs, null, "\t"));
-                    save(
-                        "./esri.geojson",
-                        JSON.stringify(new esriData(recs))
-                    );
+                    save("./esri.geojson", JSON.stringify(new esriData(recs)));
 
                     save(
                         "./cron_last_updated.txt",

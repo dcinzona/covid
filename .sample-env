@@ -1,1 +1,3 @@
 COVID_REPO_DIR='/home/gmt/COVID-19'
+PROD=false
+CRON=false
