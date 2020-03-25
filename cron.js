@@ -20,14 +20,13 @@ let spm = 60;
 let m_15 = spm * 15;
 let secondsPerHour = m_15 * 4;
 
-
-cron(m_15 * 1000,function(){
+cron(m_15 * 1000, function() {
     run();
 });
 
 run();
 
-function run(){
+function run() {
     exec(`cd "${repo}" && git pull`, (error, stdout, stderr) => {
         files = [];
         if (error) {
@@ -60,10 +59,15 @@ function run(){
                     });
                     console.log(recs[records.length - 1]);
                     console.log(recs[0]);
-                    saveCsv("./data.json", JSON.stringify(recs, null, "\t"));
-                    saveCsv(
+                    save("./data.json", JSON.stringify(recs, null, "\t"));
+                    save(
                         "./esri.geojson",
                         JSON.stringify(new esriData(recs), null, "\t")
+                    );
+
+                    save(
+                        "./cron_last_updated.txt",
+                        new Date().toLocaleString()
                     );
                 });
             })
@@ -81,11 +85,11 @@ async function print(path) {
     }
 }
 
-function saveCsv(path, data) {
+function save(path, data) {
     fs.writeFile(path, data, { flag: "w+" }, err => {
         if (err) {
             throw err;
         }
-        console.log("File is updated.");
+        console.log("Saved: " + path);
     });
 }
