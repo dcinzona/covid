@@ -62,7 +62,7 @@ function run() {
                     save("./data.json", JSON.stringify(recs, null, "\t"));
                     save(
                         "./esri.geojson",
-                        JSON.stringify(new esriData(recs), null, "\t")
+                        JSON.stringify(new esriData(recs))
                     );
 
                     save(
