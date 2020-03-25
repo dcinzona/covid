@@ -4,4 +4,5 @@ node_modules
 *.csv
 COVID-19
 data.json
+package-lock.json
 *.geojson
