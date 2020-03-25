@@ -16,10 +16,12 @@ function cron(ms, fn) {
     }
     let timeout = setTimeout(cb, ms);
 }
-let secondsPerHour = 21600;
-let sixHrs = secondsPerHour * 1000 * 6;
+let spm = 60;
+let m_15 = spm * 15;
+let secondsPerHour = m_15 * 4;
 
-cron(sixHrs,function(){
+
+cron(m_15 * 1000,function(){
     run();
 });
 
