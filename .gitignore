@@ -3,5 +3,5 @@ node_modules
 .env
 *.csv
 COVID-19
-*.json
+data.json
 *.geojson
