@@ -1,2 +1,7 @@
 .vscode
 node_modules
+.env
+*.csv
+COVID-19
+*.json
+*.geojson

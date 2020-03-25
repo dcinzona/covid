@@ -4,6 +4,8 @@ const express = require("express");
 const app = express();
 const parser = require('./parse');
 const esriData = require('./esri');
+const fs = require('fs');
+require("dotenv").config();
 
 app.use(compression());
 
@@ -12,18 +14,7 @@ app.use(express.static('docs'))
 app.get("/", (req, res) => {
     res.sendFile('./docs/index.html', { root: __dirname });
 });
-/*
-app.get("/js/app.js", (req, res) => {
-    res.sendFile('./docs/js/app.js', { root: __dirname });
-});
-app.get("/css/styles.css", (req, res) => {
-    res.sendFile('./docs/css/styles.css', { root: __dirname });
-});
 
-app.get("/favicon\.(ico|png)", (req, res) => {
-    res.sendFile('./docs/favicon.png', { root: __dirname });
-});
-*/
 // The data
 app.get("/data", (req, res) => {
     parser.run(function(data){
@@ -37,6 +28,11 @@ app.get("/api/v([0-9]+)/esri.geojson", (req, res) => {
     getEsriData(res);
 });
 
+// API versioning
+app.get("/api/v([0-9]+)/esri2.geojson", (req, res) => {
+    getEsriDataV2(res);
+});
+
 function getEsriData(res){
     parser.run(function(data){
         console.log('getting esri data');
@@ -44,6 +40,20 @@ function getEsriData(res){
         res.header("Content-Type",'application/geo+json');
         res.json(d);
     });
+}
+
+function getEsriDataV2(res) {
+    console.log("getting esri data v2");
+    res.header("Content-Type", "application/geo+json");
+    res.sendFile("./esri.geojson", { root: __dirname });
+    /*
+    fs.readFile('./data.json','utf8', function(err,data){
+        if(err){
+            res.json(err);
+            return;
+        }
+        res.json(new esriData(JSON.parse(data)));
+    })*/
 }
 
 const port = process.env.PORT || 3000;

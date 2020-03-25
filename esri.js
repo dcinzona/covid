@@ -64,12 +64,20 @@ class properties {
     country;
     dateString;
     coords;
+    uid;
+    uid2;
+    Country_Region;
+    Prov_State
     constructor(rec){
         this.ct = parseInt(rec.Confirmed);
-        this.place = rec.Label.trim();
+        this.place = rec.Label == 'United Kingdom, United Kingdom' ? 'United Kingdom' : rec.Label.trim();
         this.time = Date.parse(rec.IsoDate);
         this.dateString = rec.IsoDate;
         this.coords = rec.Location;
         this.country = rec.Country;
+        this.uid = rec.UID;
+        this.uid2 = rec.UID2;
+        this.Prov_State = rec.Province_State;
+        this.Country_Region = rec.Country_Region;
     }
 }

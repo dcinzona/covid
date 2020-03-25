@@ -37,7 +37,7 @@ define([], function() {
     let apiVersion = "v3";
     const dataUrl =
         window.location.hostname == "localhost"
-            ? `/api/${apiVersion}/esri.geojson`
+            ? `/api/${apiVersion}/esri2.geojson`
             : `https://covid-data.gmt.io/api/${apiVersion}/esri.geojson`;
 
     return {

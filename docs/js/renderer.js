@@ -23,7 +23,7 @@ define([], function() {
             {
                 type: "size",
                 minDataValue: 1,
-                maxDataValue: 40000,
+                maxDataValue: 10000,
                 minSize: 5,
                 maxSize: 90,
                 valueExpression: "$feature.ct * 1",
@@ -40,9 +40,9 @@ define([], function() {
                 stops: [
                     { value: 1, color: "cyan" },
                     //{ value: 800, color: "#98d1d1" },
-                    { value: 20000, color: "#ffed85" },
+                    { value: 10000, color: "#ffed85" },
                     //{ value: 3500, color: "#df979e" },
-                    { value: 40000, color: "#c80064" }
+                    { value: 20000, color: "#c80064" }
                 ],
                 legendOptions: {
                     showLegend: true
