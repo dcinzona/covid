@@ -34,7 +34,7 @@ define([], function() {
     }
     setDates();
     
-    let apiVersion = "v3";
+    let apiVersion = "v4";
     const dataUrl =
         window.location.hostname == "localhost"
             ? `/api/${apiVersion}/esri2.geojson`
