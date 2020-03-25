@@ -8,48 +8,66 @@ let repo = process.env.COVID_REPO_DIR;
 let filepath = `${repo}/csse_covid_19_data/csse_covid_19_daily_reports/`;
 let files;
 
-exec(`cd "${repo}" && git pull`, (error, stdout, stderr) => {
-    files = [];
-    if (error) {
-        console.error(`exec error: ${error}`);
-        return;
+function cron(ms, fn) {
+    function cb() {
+        clearTimeout(timeout);
+        timeout = setTimeout(cb, ms);
+        fn();
     }
-    console.log(`stdout: ${stdout}`);
+    let timeout = setTimeout(cb, ms);
+}
+let secondsPerHour = 21600;
+let sixHrs = secondsPerHour * 1000 * 6;
 
-    print(`${filepath}`)
-        .then(function() {
-            files = files.sort();
-            buildCSV.processFiles(files, function(records) {
-                let recs = records.map(x => {
-                    let r = {};
-                    r.Province_State = x.Province_State;
-                    r.Country_Region = x.Country_Region;
-                    r.Country = x.Country_Region;
-                    r.Location = `${x.Lat},${x.Long_}`;
-                    r.Label = x.Combined_Key;
-                    //r.Last_Update = x.Last_Update;
-                    r.Lat = x.Lat;
-                    r.Long = x.Long_;
-                    r.Confirmed = x.Confirmed;
-                    r.time = x.time;
-                    r.IsoDate = x.IsoDate;
-                    r.Combined_Key = x.Combined_Key;
-                    r.UID = x.UID;
-                    r.UID2 = x.UID2;
-                    return r;
-                });
-                console.log(recs[records.length - 1]);
-                console.log(recs[0]);
-                saveCsv("./data.json", JSON.stringify(recs, null, "\t"));
-                saveCsv(
-                    "./esri.geojson",
-                    JSON.stringify(new esriData(recs), null, "\t")
-                );
-                
-            });
-        })
-        .catch(console.error);
+cron(sixHrs,function(){
+    run();
 });
+
+run();
+
+function run(){
+    exec(`cd "${repo}" && git pull`, (error, stdout, stderr) => {
+        files = [];
+        if (error) {
+            console.error(`exec error: ${error}`);
+            return;
+        }
+        console.log(`stdout: ${stdout}`);
+
+        print(`${filepath}`)
+            .then(function() {
+                files = files.sort();
+                buildCSV.processFiles(files, function(records) {
+                    let recs = records.map(x => {
+                        let r = {};
+                        r.Province_State = x.Province_State;
+                        r.Country_Region = x.Country_Region;
+                        r.Country = x.Country_Region;
+                        r.Location = `${x.Lat},${x.Long_}`;
+                        r.Label = x.Combined_Key;
+                        //r.Last_Update = x.Last_Update;
+                        r.Lat = x.Lat;
+                        r.Long = x.Long_;
+                        r.Confirmed = x.Confirmed;
+                        r.time = x.time;
+                        r.IsoDate = x.IsoDate;
+                        r.Combined_Key = x.Combined_Key;
+                        r.UID = x.UID;
+                        r.UID2 = x.UID2;
+                        return r;
+                    });
+                    console.log(recs[records.length - 1]);
+                    console.log(recs[0]);
+                    saveCsv("./data.json", JSON.stringify(recs, null, "\t"));
+                    saveCsv(
+                        "./esri.geojson",
+                        JSON.stringify(new esriData(recs), null, "\t")
+                    );
+                });
+            })
+            .catch(console.error);
+    });
+}
 
 async function print(path) {
     const dir = await fs.promises.opendir(path);
