@@ -7,6 +7,9 @@ const exec = require("child_process").exec;
 const SECRET = process.env.WEBHOOK_SECRET;
 const repo = "./";
 
+let modified = [];
+let services = ['index.js','cron.js','webhook.js'];
+
 http.createServer(function(req, res) {
     req.on("data", function(chunk) {
       const signature = `sha1=${crypto
@@ -16,10 +19,10 @@ http.createServer(function(req, res) {
       const isAllowed = req.headers["x-hub-signature"] === signature;
       const body = JSON.parse(chunk);
       const isMaster = body.ref === "refs/heads/master";
-      console.log(body);
-          console.log('is allowed: ' + isAllowed);
       if (isAllowed && isMaster) {
           // do something
+          modified = body.head_commit.modified;
+          console.log(modified);
           pull();
       }
     });
@@ -34,7 +37,14 @@ function pull(){
             return;
         }
         console.log(`stdout: ${stdout}`);
-
+        console.log(modified);
+        modified.forEach(svc => {
+            if(services.includes(svc)){
+                console.log('restarting ' + svc);
+                let serviceName = svc.replace('.js','');
+                restartPM2(serviceName);
+            }
+        });
     });
 }
 
