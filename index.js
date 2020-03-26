@@ -9,7 +9,11 @@ require("dotenv").config();
 
 app.use(compression());
 
-app.use(express.static('docs'))
+app.get("/favicon.png", (req, res) => {
+    res.sendFile("./docs/favicon-dev.png", { root: __dirname });
+});
+
+app.use(express.static("docs"));
 
 app.get("/", (req, res) => {
     res.sendFile('./docs/index.html', { root: __dirname });
