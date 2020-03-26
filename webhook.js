@@ -7,8 +7,6 @@ const exec = require("child_process").exec;
 const logger = require('./logger');
 const SECRET = process.env.WEBHOOK_SECRET;
 
-logger.error('test');
-
 let modified = [];
 let services = ['index.js','cron.js','webhook.js'];
 
@@ -40,7 +38,7 @@ function pull(){
         }
         modified.forEach(svc => {
             if(services.includes(svc)){
-                logger.log('restarting ' + svc, 'restarts.log');
+                logger.trim('restarting ' + svc, 'restarts.log');
                 let serviceName = svc.replace('.js','');
                 restartPM2(serviceName);
             }
@@ -54,6 +52,6 @@ function restartPM2(serviceName){
             logger.error(`exec error: ${error}`);
             return;
         }
-        logger.log(`stdout: ${stdout}`, 'restarts.log');
+        logger.trim(`stdout: ${stdout}`, 'restarts.log');
     });
 }

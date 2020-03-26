@@ -2,6 +2,7 @@ const { exec } = require("child_process");
 const fs = require("fs");
 const buildCSV = require("./resources/buildCSV");
 const esriData = require("./esri");
+const logger = require('./logger');
 require("dotenv").config();
 
 let repo = process.env.COVID_REPO_DIR;
@@ -16,12 +17,14 @@ function cron(ms, fn) {
     }
     let timeout = setTimeout(cb, ms);
 }
+
 let spm = 60;
 let m_15 = spm * 15;
 let secondsPerHour = m_15 * 4;
+let hourly = secondsPerHour * 1000;
 
 if (process.env.ENV == 'PROD') {
-    cron(m_15 * 1000, function() {
+    cron(hourly, function() {
         run();
     });
 }
@@ -32,7 +35,7 @@ function run() {
     exec(`cd "${repo}" && git pull`, (error, stdout, stderr) => {
         files = [];
         if (error) {
-            console.error(`exec error: ${error}`);
+            logger.error(`exec error: ${error}`);
             return;
         }
         console.log(`stdout: ${stdout}`);
@@ -62,9 +65,9 @@ function run() {
                     save("./data.json", JSON.stringify(recs, null, "\t"));
                     save("./esri.geojson", JSON.stringify(new esriData(recs)));
 
-                    save(
-                        "./cron_last_updated.txt",
-                        new Date().toLocaleString()
+                    logger.trim(
+                        'COVID-19 Data Updated',
+                        "./cron_last_updated.log"
                     );
                 });
             })
@@ -85,7 +88,7 @@ async function print(path) {
 function save(path, data) {
     fs.writeFile(path, data, { flag: "w+" }, err => {
         if (err) {
-            throw err;
+            logger.error(err);
         }
         console.log("Saved: " + path);
     });
