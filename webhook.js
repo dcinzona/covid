@@ -20,8 +20,30 @@ http.createServer(function(req, res) {
           console.log('is allowed: ' + isAllowed);
       if (isAllowed && isMaster) {
           // do something
+          pull();
       }
     });
 
     res.end();
 }).listen(3001);
+
+function pull(){
+    exec(`git pull`, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`exec error: ${error}`);
+            return;
+        }
+        console.log(`stdout: ${stdout}`);
+
+    });
+}
+
+function restartPM2(serviceName){
+    exec(`pm2 restart ${serviceName}`, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`exec error: ${error}`);
+            return;
+        }
+        console.log(`stdout: ${stdout}`);
+    });
+}
