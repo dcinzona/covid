@@ -4,8 +4,10 @@ require("dotenv").config();
 const http = require("http");
 const crypto = require("crypto");
 const exec = require("child_process").exec;
+const logger = require('./logger');
 const SECRET = process.env.WEBHOOK_SECRET;
-const repo = "./";
+
+logger.error('test');
 
 let modified = [];
 let services = ['index.js','cron.js','webhook.js'];
@@ -33,14 +35,12 @@ http.createServer(function(req, res) {
 function pull(){
     exec(`git pull`, (error, stdout, stderr) => {
         if (error) {
-            console.error(`exec error: ${error}`);
+            logger.error(`exec error: ${error}`);
             return;
         }
-        console.log(`stdout: ${stdout}`);
-        console.log(modified);
         modified.forEach(svc => {
             if(services.includes(svc)){
-                console.log('restarting ' + svc);
+                logger.log('restarting ' + svc, 'restarts.log');
                 let serviceName = svc.replace('.js','');
                 restartPM2(serviceName);
             }
@@ -51,9 +51,9 @@ function pull(){
 function restartPM2(serviceName){
     exec(`pm2 restart ${serviceName}`, (error, stdout, stderr) => {
         if (error) {
-            console.error(`exec error: ${error}`);
+            logger.error(`exec error: ${error}`);
             return;
         }
-        console.log(`stdout: ${stdout}`);
+        logger.log(`stdout: ${stdout}`, 'restarts.log');
     });
 }
