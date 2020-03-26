@@ -2,6 +2,8 @@
 
 ### Requirements:
 * NodeJS v12+
+* [Node PM2](https://www.npmjs.com/package/pm2) (for running as a service)
+    * `Webhook.js` expects pm2 to be running to restart the services when new versions are pushed to the master branch
 
 ### Instructions
 1. Install NodeJS LTS or Current: https://nodejs.org/en/
@@ -46,7 +48,7 @@ In dev, you have to run `node cron.js` every time you want to rebuild the geojso
 ### Todo
 
 - [ ] Figure out if I can z-index the points with largest on the bottom
-- [ ] Build a webhook to auto-deploy to prod and restart the pm2 jobs
+- [x] Build a webhook to auto-deploy to prod and restart the pm2 jobs
 - [ ] Add an Updates section to the front-end UI somewhere
 - [ ] Enable comparing two different countries' rate of infection
 
