@@ -1,6 +1,5 @@
-define([], function() {
-
-    function convertToDateString(value){
+define([`${gmt_domainRoot}/js/shared.js`], function() {
+    function convertToDateString(value) {
         //YYYY-MM-DD
         let date = new Date(value);
         let dayOfMonth = date.getUTCDate();
@@ -13,32 +12,29 @@ define([], function() {
 
     let endDate, nextUpdate;
 
-    function setDates(){
-            const today = new Date();
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const yesteday = new Date(today);
-            yesteday.setDate(yesteday.getDate() - 1);
+    function setDates() {
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const yesteday = new Date(today);
+        yesteday.setDate(yesteday.getDate() - 1);
 
-            const updating = new Date(
-                tomorrow.toLocaleDateString() + " 00:15 UTC"
-            );
-            nextUpdate =
-                updating > today
-                    ? updating
-                    : new Date(tomorrow.toLocaleDateString() + " 23:59 UTC");
-            endDate =
-                today > updating
-                    ? new Date(today.toLocaleDateString()).getTime()
-                    : new Date(yesteday.toLocaleDateString()).getTime();
+        const updating = new Date(tomorrow.toLocaleDateString() + " 00:15 UTC");
+        nextUpdate =
+            updating > today
+                ? updating
+                : new Date(tomorrow.toLocaleDateString() + " 23:59 UTC");
+        endDate =
+            today > updating
+                ? new Date(today.toLocaleDateString()).getTime()
+                : new Date(yesteday.toLocaleDateString()).getTime();
     }
     setDates();
-    
-    let apiVersion = "v4";
-    const dataUrl =
+
+    let dataUrl =
         window.location.hostname == "localhost"
-            ? `/api/${apiVersion}/esri2.geojson`
-            : `https://covid-data.gmt.io/api/${apiVersion}/esri2.geojson`;
+            ? `/api/${sharedConfig.apiVersion}/esri.geojson`
+            : sharedConfig.pubURI;
 
     return {
         convertToDateString: convertToDateString,

@@ -1,9 +1,15 @@
 const { exec } = require("child_process");
 const fs = require("fs");
 const buildCSV = require("./resources/buildCSV");
+const sharedConfig = require("./docs/js/shared.js");
 const esriData = require("./esri");
-const logger = require('./logger');
+const logger = require("./logger");
 require("dotenv").config();
+var isDev = process.env.ENV === "DEV";
+
+var cf = require("cloudflare")({
+    token: process.env.CF_TOKEN
+});
 
 let repo = process.env.COVID_REPO_DIR;
 let filepath = `${repo}/csse_covid_19_data/csse_covid_19_daily_reports/`;
@@ -23,7 +29,7 @@ let m_15 = spm * 15;
 let secondsPerHour = m_15 * 4;
 let hourly = secondsPerHour * 1000;
 
-if (process.env.ENV == 'PROD') {
+if (!isDev) {
     cron(hourly, function() {
         run();
     });
@@ -62,11 +68,12 @@ function run() {
                         r.UID2 = x.UID2;
                         return r;
                     });
-                    save("./data.json", JSON.stringify(recs, null, "\t"));
-                    save("./esri.geojson", JSON.stringify(new esriData(recs)));
+                    //save("./data.json", JSON.stringify(recs, null, "\t"));
+                    let esriGeo = JSON.stringify(new esriData(recs));
+                    save("./esri.geojson", esriGeo);
 
                     logger.trim(
-                        'COVID-19 Data Updated',
+                        "COVID-19 Data Updated",
                         "./cron_last_updated.log"
                     );
                 });
@@ -86,10 +93,56 @@ async function print(path) {
 }
 
 function save(path, data) {
-    fs.writeFile(path, data, { flag: "w+" }, err => {
-        if (err) {
-            logger.error(err);
+    logger.stat(path).then(origStats => {
+        if (origStats !== undefined) {
+            if (origStats.size != data.length) {
+                write(path, data);
+            } else {
+                console.log("no change to data");
+            }
         }
-        console.log("Saved: " + path);
     });
+
+    function write(path, data) {
+        fs.writeFile(path, data, { flag: "w+" }, err => {
+            if (err) {
+                logger.error(err);
+            } else {
+                console.log("Saved: " + path);
+                purgeCache();
+            }
+        });
+    }
+
+    function purgeCache() {
+        //clear cloudflare cache
+        try {
+            let cachedFile = isDev
+                ? "/api/v1/esri.geojson"
+                : sharedConfig.pubURI;
+            let params = {
+                files: [cachedFile]
+            };
+            console.log(params);
+            cf.zones
+                .purgeCache(process.env.CF_ZONE_ID, params)
+                .then(resp => {
+                    if (resp.success) {
+                        console.log(resp);
+                        logger.log("Cloudflare cache cleared");
+                    } else {
+                        logger.err(
+                            `Errors clearing cache: ${JSON.stringify(
+                                resp.errors
+                            )}`
+                        );
+                    }
+                })
+                .catch(err => {
+                    logger.error(err);
+                });
+        } catch (purgeErr) {
+            logger.error(purgeErr);
+        }
+    }
 }
