@@ -17,37 +17,13 @@ let repo = process.env.COVID_REPO_DIR;
 let filepath = `${repo}/csse_covid_19_data/csse_covid_19_daily_reports/`;
 let files;
 
-function cron2(ms, fn) {
-    function cb() {
-        clearTimeout(timeout);
-        timeout = setTimeout(cb, ms);
-        fn();
-    }
-    let timeout = setTimeout(cb, ms);
-}
-
-let spm = 60;
-let m_15 = spm * 15;
-let secondsPerHour = m_15 * 4;
-let hourly = secondsPerHour * 1000;
-
-if (!isDev) {
-    cron2(hourly, function() {
-        run();
-    });
-}
-
 //run at *:15 EST
 let job = cron.schedule("15 * * * *", run, {
-    scheduled: false,
+    scheduled: true,
     timezone: "America/New_York"
 });
 
-job.start();
-
-if (isDev) {
-    run();
-}
+run();
 
 function run() {
     exec(`cd "${repo}" && git pull`, (error, stdout, stderr) => {
@@ -83,7 +59,6 @@ function run() {
                     //save("./data.json", JSON.stringify(recs, null, "\t"));
                     let esriGeo = JSON.stringify(new esriData(recs));
                     save("./esri.geojson", esriGeo);
-
                 });
             })
             .catch(console.error);
@@ -117,10 +92,7 @@ function save(path, data) {
                 logger.error(err);
             } else {
                 console.log("Saved: " + path);
-                logger.trim(
-                    "COVID-19 Data Updated",
-                    "./cron_last_updated.log"
-                );
+                logger.trim("COVID-19 Data Updated", "./cron_last_updated.log");
                 purgeCache();
             }
         });
