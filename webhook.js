@@ -70,7 +70,7 @@ function restartPM2() {
                     logger.error(`exec error: ${error}`);
                     return;
                 }
-                logger.trim(`stdout: ${stdout}`, "restarts.log");
+                //logger.trim(`stdout: ${stdout}`, "restarts.log");
             });
         }
     });
