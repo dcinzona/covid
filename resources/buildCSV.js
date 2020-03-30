@@ -5,6 +5,7 @@ const states = require("./states_hash");
 const stateCoords = require("./USstates_avg_latLong");
 const firstBy = require("thenby");
 require("dotenv").config();
+var isDev = process.env.ENV === "DEV";
 
 let repo = process.env.COVID_REPO_DIR;
 let filepath = `${repo}/csse_covid_19_data/csse_covid_19_daily_reports/`;
@@ -60,7 +61,7 @@ function processRecord(record, fname) {
 
         if (record.Lat != undefined) {
             if (record.Combined_Key && !recMap[record.Combined_Key]) {
-                if (record.Combined_Key.indexOf("Unassigned, ") === -1) {
+                if (record.Combined_Key.indexOf("Unassigned,") === -1) {
                     recMap[record.Combined_Key] = {
                         Lat: record.Lat,
                         Long_: record.Long_
@@ -270,9 +271,13 @@ function processRecords() {
         .map(x => {
             x = normalizeCombinedKey(x);
             //fixing issue where combined key exists and includes 'Unassigned'
+            let unassginedFixed = false;
             if (x.Combined_Key.startsWith("Unassigned")) {
-                console.log(`[${x.IsoDate}] ${x.Combined_Key} ${x.Confirmed}`);
-                x.Combined_Key = x.Combined_Key.replace("Unassigned, ", "");
+                //console.log(`[${x.IsoDate}] ${x.Combined_Key} ${x.Confirmed}`);
+                let fixed = x.Combined_Key.replace("Unassigned,", "").trim();
+                //console.log(`[${x.IsoDate}] ${x.Combined_Key} => ${fixed}`);
+                x.Combined_Key = fixed;
+                unassginedFixed = true;
             }
             //fix combined keys that include us county (reduce to just state, country)
             let spl = x.Combined_Key.split(",");
@@ -280,6 +285,16 @@ function processRecords() {
                 spl.length > 2
                     ? `${spl[1].trim()}, ${spl[2].trim()}`
                     : x.Combined_Key;
+
+            //fix for some combined keys missing spaces
+            spl = x.Combined_Key.split(",");
+            if (x.Country_Region == "US" && spl.length == 2) {
+                x.Combined_Key = `${spl[0].trim()}, ${spl[1].trim()}`;
+            }
+
+            if(unassginedFixed && isDev){
+                console.log(`[${x.IsoDate}] ${x.Combined_Key} = ${x.Confirmed}`);
+            }
 
             //update coordinates based on state
             x.Lat =
@@ -298,8 +313,6 @@ function processRecords() {
         })
         .sort(firstBy("time"));
 
-    logging(sorted);
-
     var result = Object.values(
         sorted.reduce(function(r, e) {
             var key = e.UID2;
@@ -311,29 +324,6 @@ function processRecords() {
         }, {})
     );
     return result;
-}
-
-function logging(recs) {
-    if (false) {
-        console.log("Record: 0");
-        console.log(recs[0]);
-        console.log("Record: " + (recs.length - 1));
-        console.log(recs[recs.length - 1]);
-    }
-    if (false) {
-        let usTotal = recs
-            .filter(x => {
-                return x.Country_Region == "US";
-            })
-            .reduce(function(usTotal, datum) {
-                let date = datum.IsoDate;
-                let ct = datum.Confirmed;
-                let group = date;
-                usTotal[group] = (usTotal[group] || 0) + ct;
-                return usTotal;
-            }, {});
-        console.log(usTotal);
-    }
 }
 
 exports.makeCsv = function(recs, callback) {

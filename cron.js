@@ -11,11 +11,13 @@ var cf = require("cloudflare")({
     token: process.env.CF_TOKEN
 });
 
+const cron = require("node-cron");
+
 let repo = process.env.COVID_REPO_DIR;
 let filepath = `${repo}/csse_covid_19_data/csse_covid_19_daily_reports/`;
 let files;
 
-function cron(ms, fn) {
+function cron2(ms, fn) {
     function cb() {
         clearTimeout(timeout);
         timeout = setTimeout(cb, ms);
@@ -30,12 +32,22 @@ let secondsPerHour = m_15 * 4;
 let hourly = secondsPerHour * 1000;
 
 if (!isDev) {
-    cron(hourly, function() {
+    cron2(hourly, function() {
         run();
     });
 }
 
-run();
+//run at *:15 EST
+let job = cron.schedule("15 * * * *", run, {
+    scheduled: false,
+    timezone: "America/New_York"
+});
+
+job.start();
+
+if (isDev) {
+    run();
+}
 
 function run() {
     exec(`cd "${repo}" && git pull`, (error, stdout, stderr) => {
@@ -72,10 +84,6 @@ function run() {
                     let esriGeo = JSON.stringify(new esriData(recs));
                     save("./esri.geojson", esriGeo);
 
-                    logger.trim(
-                        "COVID-19 Data Updated",
-                        "./cron_last_updated.log"
-                    );
                 });
             })
             .catch(console.error);
@@ -109,6 +117,10 @@ function save(path, data) {
                 logger.error(err);
             } else {
                 console.log("Saved: " + path);
+                logger.trim(
+                    "COVID-19 Data Updated",
+                    "./cron_last_updated.log"
+                );
                 purgeCache();
             }
         });
