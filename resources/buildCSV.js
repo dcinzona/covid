@@ -15,10 +15,8 @@ exports.processFiles = processFiles;
 
 let records;
 let recMap = stateCoords.getRecMap();
-//console.log(recMap);
 
 function processFiles(files, callback) {
-    //files = f;
     records = [];
     for (let index = files.length - 1; index >= 0; index--) {
         let fname = files[index];
@@ -28,10 +26,7 @@ function processFiles(files, callback) {
         let recs = parse(d, { columns: true }).filter(x => {
             return parseInt(x.Confirmed) >= 1;
         });
-        //console.log(recs.length);
         for (let i = 0; i < recs.length; i++) {
-            //console.log(index);
-            //console.log(files[index]);
             processRecord(recs[i], files[index]);
         }
 
@@ -293,7 +288,7 @@ function processRecords() {
             }
 
             if(unassginedFixed && isDev){
-                console.log(`[${x.IsoDate}] ${x.Combined_Key} = ${x.Confirmed}`);
+                //console.log(`[${x.IsoDate}] ${x.Combined_Key} = ${x.Confirmed}`);
             }
 
             //update coordinates based on state

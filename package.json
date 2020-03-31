@@ -7,7 +7,8 @@
     "parse": "node parse.js run",
     "start": "node index.js",
     "cron": "node cron.js",
-    "webhook": "node webhook.js"
+    "webhook": "node webhook.js",
+    "webhook-test": "node tests.js webhook"
   },
   "keywords": [],
   "author": "",

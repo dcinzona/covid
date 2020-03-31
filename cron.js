@@ -16,9 +16,12 @@ const cron = require("node-cron");
 let repo = process.env.COVID_REPO_DIR;
 let filepath = `${repo}/csse_covid_19_data/csse_covid_19_daily_reports/`;
 let files;
+let filesWithLastMod = {};
+let prevFiles = {};
 
 //run at *:15 EST
-let job = cron.schedule("15 * * * *", run, {
+//jk run every 5 min
+cron.schedule("*/5 * * * *", run, {
     scheduled: true,
     timezone: "America/New_York"
 });
@@ -26,51 +29,95 @@ let job = cron.schedule("15 * * * *", run, {
 run();
 
 function run() {
-    exec(`cd "${repo}" && git pull`, (error, stdout, stderr) => {
-        files = [];
-        if (error) {
-            logger.error(`exec error: ${error}`);
-            return;
-        }
-        console.log(`stdout: ${stdout}`);
+    prevFiles = {};
+    print(`${filepath}`).then(() => {
+        //make a copy of previous files
+        Object.assign(prevFiles, filesWithLastMod);
 
-        print(`${filepath}`)
-            .then(function() {
-                files = files.sort();
-                buildCSV.processFiles(files, function(records) {
-                    let recs = records.map(x => {
-                        let r = {};
-                        r.Province_State = x.Province_State;
-                        r.Country_Region = x.Country_Region;
-                        r.Country = x.Country_Region;
-                        r.Location = `${x.Lat},${x.Long_}`;
-                        r.Label = x.Combined_Key;
-                        //r.Last_Update = x.Last_Update;
-                        r.Lat = x.Lat;
-                        r.Long = x.Long_;
-                        r.Confirmed = x.Confirmed;
-                        r.time = x.time;
-                        r.IsoDate = x.IsoDate;
-                        r.Combined_Key = x.Combined_Key;
-                        r.UID = x.UID;
-                        r.UID2 = x.UID2;
-                        return r;
+        exec(`cd "${repo}" && git pull`, (error, stdout, stderr) => {
+            if (error) {
+                logger.error(`exec error: ${error}`);
+                return;
+            }
+
+            //console.log(`stdout: ${stdout}`);
+
+            if (`${stdout}`.trim() === "Already up to date.") {
+                if(isDev) console.log(`[${new Date().toLocaleTimeString()}] Repo has no changes\n`);
+                return;
+            }
+
+            print(`${filepath}`)
+                .then(function() {
+                    
+                    //check each file stat
+                    let shouldBuild = files.some(f => {
+
+                        if(Object.keys(prevFiles).indexOf(f) === -1){
+                            if(isDev) console.log(`prevFiles missing key: ${f}`);
+                            return true;
+                        }
+
+                        let orig_mdate = new Date(prevFiles[f]).getTime();
+                        let new_mdate = new Date(filesWithLastMod[f]).getTime();
+                        
+                        if(orig_mdate < new_mdate){
+                            if(isDev) console.log(`${f} ${orig_mdate} < ${new_mdate}`);
+                            return true;
+                        }
                     });
-                    //save("./data.json", JSON.stringify(recs, null, "\t"));
-                    let esriGeo = JSON.stringify(new esriData(recs));
-                    save("./esri.geojson", esriGeo);
-                });
-            })
-            .catch(console.error);
+
+                    // return if no new or modified files
+                    if (shouldBuild === false) {
+                        return; // don't rebuild if there's nothing new.
+                    }
+
+                    files = files.sort();
+                    buildCSV.processFiles(files, function(records) {
+                        let recs = records.map(x => {
+                            let r = {};
+                            r.Province_State = x.Province_State;
+                            r.Country_Region = x.Country_Region;
+                            r.Country = x.Country_Region;
+                            r.Location = `${x.Lat},${x.Long_}`;
+                            r.Label = x.Combined_Key;
+                            //r.Last_Update = x.Last_Update;
+                            r.Lat = x.Lat;
+                            r.Long = x.Long_;
+                            r.Confirmed = x.Confirmed;
+                            r.time = x.time;
+                            r.IsoDate = x.IsoDate;
+                            r.Combined_Key = x.Combined_Key;
+                            r.UID = x.UID;
+                            r.UID2 = x.UID2;
+                            return r;
+                        });
+                        //save("./data.json", JSON.stringify(recs, null, "\t"));
+                        let esriGeo = JSON.stringify(new esriData(recs));
+                        save("./esri.geojson", esriGeo);
+                    });
+                })
+                .catch(console.error);
+        });
     });
 }
-
 async function print(path) {
+    files = [];
+    filesWithLastMod = {};
     const dir = await fs.promises.opendir(path);
     for await (const dirent of dir) {
         if (dirent.name.endsWith(".csv")) {
-            //console.log(dirent.name);
-            files.push(`${dirent.name.replace(".csv", "")}`);
+
+            let fullPath = `${path}${dirent.name}`;
+
+            const getFileUpdatedDate = fullPath => {
+                const stats = fs.statSync(fullPath);
+                return stats.mtime;
+            };
+
+            let fname = dirent.name.replace(".csv", "");
+            filesWithLastMod[fname] = getFileUpdatedDate(fullPath);
+            files.push(fname);
         }
     }
 }
@@ -99,6 +146,7 @@ function save(path, data) {
     }
 
     function purgeCache() {
+        if (isDev) return; //don't do anything on cloudflare if dev (now that we know it works)
         //clear cloudflare cache
         try {
             let cachedFile = isDev
