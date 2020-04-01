@@ -42,12 +42,6 @@ app.get("/api/v([0-9]+)/esri.geojson", (req, res) => {
 app.get(sharedConfig.dataURI, (req, res) => {
     getEsriDataV2(res);
 });
-app.get("/logs", (req, res) => {
-    if (checkKey(req)) res.sendFile("./resources/logviewer.html", {
-                           root: __dirname
-                       });
-    else res.sendStatus(403);
-}); 
 // Log API
 app.get("/logs/error", (req, res) => {
     if(checkKey(req)) sendLog('./error.log', res);
