@@ -59,7 +59,7 @@ function restartPM2() {
                 }
             );
         } catch (ex) {
-            //console.error(ex);
+            logger.error(ex);
         }
     }
 
