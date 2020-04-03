@@ -51,9 +51,7 @@ app.get("/logs/status", (req, res) => {
         res.header("Content-Language", "en-US");
         res.header("Cache-Control", "no-cache");
         res.header("Content-Type", "text/html");
-
-        //let pm2 = exec(`pm2 l`);
-        //pm2.stdout.pipe(process.stdout);
+        
         process.env.FORCE_COLOR = true;
         let pm2 = spawn("pm2", ["ls"]);
 
