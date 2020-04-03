@@ -46,8 +46,8 @@ function restartPM2() {
         }).length > 0;
 
     if (shouldRestart) {
-        logger.trim(`Webhook received modified files: ${exports.modified}`);
-        logger.trim(`restarting ecosystem.config.js`, "restarts.log");
+        //logger.trim(`Webhook received modified files: ${exports.modified}`);
+        logger.trim(`restarting all services...`, "restarts.log");
         try {
             process.env.WEBHOOK_PORT = 3001;
             execSync(
