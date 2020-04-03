@@ -43,10 +43,8 @@ function restartPM2() {
         exports.modified.filter((e, i) => {
             return e.endsWith(".js");
         }).length > 0;
-
-    console.log(shouldRestart);
-
     if (shouldRestart) {
+        logger.trim(`Webhook received modified files: ${exports.modified}`);
         logger.trim(`restarting ecosystem.config.js`, "restarts.log");
         try {
             process.env.WEBHOOK_PORT = 3001;
