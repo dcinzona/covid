@@ -39,10 +39,12 @@ function restartPM2() {
         console.log("checking for need to restart pm2 services");
     }
     modifiedSet = new Set(exports.modified);
+    //restart all services when any js files are updated
     let shouldRestart =
         exports.modified.filter((e, i) => {
             return e.endsWith(".js");
         }).length > 0;
+
     if (shouldRestart) {
         logger.trim(`Webhook received modified files: ${exports.modified}`);
         logger.trim(`restarting ecosystem.config.js`, "restarts.log");
