@@ -4,40 +4,19 @@ module.exports = {
             name: "cron",
             script: "cron.js",
             instances: 1,
-            exec_mode: "fork",
-            watch: [
-                "./*.js",
-                "./resources/buildCSV.js",
-                "./docs/js/shared.js",
-                ".env"
-            ],
-            watch_delay: 1000
+            exec_mode: "fork"
         },
         {
             name: "index",
             script: "index.js",
             instances: 1,
-            exec_mode: "fork",
-            watch: [
-                "./*.js",
-                "./resources/*.js",
-                "./docs/js/shared.js",
-                ".env"
-            ],
-            watch_delay: 1000
+            exec_mode: "fork"
         },
         {
             name: "webhook",
             script: "webhook.js",
             instances: 1,
-            exec_mode: "fork",
-            watch: [
-                "./*.js",
-                "./resources/*.js",
-                "./docs/js/shared.js",
-                ".env"
-            ],
-            watch_delay: 1000
+            exec_mode: "fork"
         }
     ]
 };

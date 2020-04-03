@@ -18,7 +18,7 @@ function pull() {
                 resolve(restartPM2());
             }
         });
-    })
+    });
 }
 
 function updateNPM() {
@@ -38,7 +38,32 @@ function restartPM2() {
     if (isDev) {
         console.log("checking for need to restart pm2 services");
     }
+    modifiedSet = new Set(exports.modified);
+    let shouldRestart =
+        modifiedSet.filter((e, i) => {
+            return e.endsWith(".js");
+        }).length > 0;
 
+    if (shouldRestart) {
+        try {
+            execSync(
+                `pm2 restart ecosystem.config.js`,
+                (error, stdout, stderr) => {
+                    if (error) {
+                        logger.error(`exec error: ${error}`);
+                    }
+                    logger.trim(
+                        `restarted ecosystem.config.js`,
+                        "restarts.log"
+                    );
+                }
+            );
+        } catch (ex) {
+            //console.error(ex);
+        }
+    }
+
+    /*
     modifiedSet = new Set(exports.modified);
 
     if (modifiedSet.has("resources/buildCSV.js")) {
@@ -67,7 +92,8 @@ function restartPM2() {
             }
         }
     });
-    return 'WEBHOOK DONE';
+    */
+    return "WEBHOOK DONE";
 }
 
 function createSig(chunk) {
