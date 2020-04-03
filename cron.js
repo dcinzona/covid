@@ -4,6 +4,7 @@ const buildCSV = require("./resources/buildCSV");
 const sharedConfig = require("./docs/js/shared.js");
 const esriData = require("./esri");
 const logger = require("./logger");
+
 require("dotenv").config();
 var isDev = process.env.ENV === "DEV";
 

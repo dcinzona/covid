@@ -1,7 +1,6 @@
 const fs = require("fs");
-
 const defaultPath = "logger.log";
-const trimAtSize = 10000;
+const trimAtSize = 4000;
 
 function saveLog(message, file = defaultPath, isError = false) {
     return new Promise((resolve, reject) => {

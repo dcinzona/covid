@@ -1,13 +1,14 @@
-'use strict';
-const compression = require('compression');
+"use strict";
+const compression = require("compression");
 const express = require("express");
 const app = express();
-const parser = require('./parse');
-const esriData = require('./esri');
-const fs = require('fs');
+//const esriData = require('./esri');
+const fs = require("fs");
 const logger = require("./logger");
 const sharedConfig = require("./docs/js/shared.js");
+const { exec, spawn, spawnSync } = require("child_process");
 require("dotenv").config();
+var isDev = process.env.ENV === "DEV";
 
 app.use(compression());
 
@@ -18,25 +19,8 @@ app.get("/favicon.png", (req, res) => {
 app.use(express.static("docs"));
 
 app.get("/", (req, res) => {
-    res.sendFile('./docs/index.html', { root: __dirname });
+    res.sendFile("./docs/index.html", { root: __dirname });
 });
-
-// The data
-/*
-app.get("/data", (req, res) => {
-    parser.run(function(data){
-        res.header("Content-Type",'application/json');
-        res.json(data);
-    });
-});
-*/
-
-// API versioning
-/*
-app.get("/api/v([0-9]+)/esri.geojson", (req, res) => {
-    getEsriDataV2(res);
-});
-*/
 
 // Data API
 app.get(sharedConfig.dataURI, (req, res) => {
@@ -44,37 +28,69 @@ app.get(sharedConfig.dataURI, (req, res) => {
 });
 // Log API
 app.get("/logs/error", (req, res) => {
-    if(checkKey(req)) sendLog('./error.log', res);
+    if (checkKey(req)) sendLog("./error.log", res);
     else res.sendStatus(403);
-}); 
+});
 app.get("/logs/restart", (req, res) => {
     if (checkKey(req)) sendLog("./restarts.log", res);
     else res.sendStatus(403);
-}); 
+});
 app.get("/logs/cron", (req, res) => {
     if (checkKey(req)) sendLog("./cron_last_updated.log", res);
     else res.sendStatus(403);
-}); 
+});
 app.get("/logs/logger", (req, res) => {
     if (checkKey(req)) sendLog("./logger.log", res);
     else res.sendStatus(403);
 });
 
-function checkKey(req){
+var Convert = require("ansi-to-html");
+var convert = new Convert({});
+app.get("/logs/status", (req, res) => {
+    if (checkKey(req)) {
+        res.header("Content-Language", "en-US");
+        res.header("Cache-Control", "no-cache");
+        res.header("Content-Type", "text/html");
+
+        //let pm2 = exec(`pm2 l`);
+        //pm2.stdout.pipe(process.stdout);
+        process.env.FORCE_COLOR = true;
+        let pm2 = spawn("pm2", ["ls"]);
+        
+        pm2.stdout.on("data", data => {
+            console.log(data.toString());
+            res.header("Content-Type", "text/html");
+            res.send(
+                `<html lang="en">
+                    <head>
+                    <style>
+                    html,body { background: #0e0e0e; }
+                    pre { font-family: monospace; }</style>
+                    </head>
+                    <body>
+                    <pre>${convert.toHtml(data.toString())}</pre>
+                    </body>
+                    </html>`
+            );
+        });
+
+        /* */
+    } else res.sendStatus(403);
+});
+
+function checkKey(req) {
     var key = req.query.key;
-    return key === process.env.APIKEY;
+    return isDev ? isDev : key === process.env.APIKEY;
 }
 
-function sendLog(file, res){
-
+function sendLog(file, res) {
     if (fileExists(file)) {
         res.sendFile(file, { root: __dirname });
     } else {
         res.sendStatus(404);
     }
-
 }
-function fileExists(path){
+function fileExists(path) {
     try {
         if (fs.existsSync(path)) {
             return true;
@@ -83,10 +99,6 @@ function fileExists(path){
         logger.error(err);
     }
     return false;
-}
-function sendError(err){
-        if (err) console.log(err);
-        else console.log("Sent:", fileName);
 }
 
 function getEsriDataV2(res) {
@@ -98,5 +110,5 @@ function getEsriDataV2(res) {
 const port = process.env.PORT || 3000;
 
 app.listen(port, () => {
-  console.log(`App listening on http://localhost:${port}`);
+    console.log(`App listening on http://localhost:${port}`);
 });
