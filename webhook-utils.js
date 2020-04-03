@@ -51,7 +51,7 @@ function restartPM2() {
         try {
             process.env.WEBHOOK_PORT = 3001;
             execSync(
-                `pm2 restart ecosystem.config.js`,
+                `pm2 start ecosystem.config.js`,
                 (error, stdout, stderr) => {
                     if (error) {
                         logger.error(`exec error: ${error}`);
