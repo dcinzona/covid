@@ -5,6 +5,7 @@ const utils = require("./webhook-utils");
 const logger = require("./logger");
 const port = process.env.WEBHOOK_PORT || 3001;
 
+
 exports.server = http
     .createServer(function(req, res) {
         req.on("data", function(chunk) {
@@ -27,5 +28,6 @@ exports.server = http
         res.end();
     })
     .listen(port, () => {
-        console.log(`Webhook service listening on port ${port}`);
+        logger.trim(`Starting webhook.js on port ${port}`, "restarts.log");
+        //console.log(`Webhook service listening on port ${port}`);
     });

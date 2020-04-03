@@ -40,22 +40,22 @@ function restartPM2() {
     }
     modifiedSet = new Set(exports.modified);
     let shouldRestart =
-        modifiedSet.filter((e, i) => {
+        exports.modified.filter((e, i) => {
             return e.endsWith(".js");
         }).length > 0;
 
+    console.log(shouldRestart);
+
     if (shouldRestart) {
+        logger.trim(`restarting ecosystem.config.js`, "restarts.log");
         try {
+            process.env.WEBHOOK_PORT = 3001;
             execSync(
                 `pm2 restart ecosystem.config.js`,
                 (error, stdout, stderr) => {
                     if (error) {
                         logger.error(`exec error: ${error}`);
                     }
-                    logger.trim(
-                        `restarted ecosystem.config.js`,
-                        "restarts.log"
-                    );
                 }
             );
         } catch (ex) {

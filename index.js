@@ -56,7 +56,7 @@ app.get("/logs/status", (req, res) => {
         //pm2.stdout.pipe(process.stdout);
         process.env.FORCE_COLOR = true;
         let pm2 = spawn("pm2", ["ls"]);
-        
+
         pm2.stdout.on("data", data => {
             console.log(data.toString());
             res.header("Content-Type", "text/html");
@@ -110,5 +110,5 @@ function getEsriDataV2(res) {
 const port = process.env.PORT || 3000;
 
 app.listen(port, () => {
-    console.log(`App listening on http://localhost:${port}`);
+    logger.trim(`Starting index.js on port ${port}`, "restarts.log");
 });

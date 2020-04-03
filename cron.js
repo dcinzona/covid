@@ -27,6 +27,8 @@ cron.schedule("*/5 * * * *", run, {
     timezone: "America/New_York"
 });
 
+logger.trim('Starting cron.js','restarts.log');
+
 run();
 
 function run() {

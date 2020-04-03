@@ -2,6 +2,7 @@ require("dotenv").config();
 var isDev = process.env.ENV === "DEV";
 const http = require("http");
 const webhookUtils = require("./webhook-utils");
+const logger = require("./logger");
 
 process.env.WEBHOOK_PORT = 3002;
 
@@ -43,13 +44,21 @@ function runWebhookTest() {
         console.log(`statusCode: ${res.statusCode}`);
     });
 
-      req.on("close", () => {
-          console.log("request closed");
-          webhook.job.then(function(msg){
-              console.log(`callback: ${msg}`);
-              process.exit();
-          })
-      });
+    req.on("close", () => {
+        console.log("request closed");
+        let port = process.env.WEBHOOK_PORT;
+        webhook.job
+            .then(function(msg) {
+                console.log(`callback: ${msg}`);
+                logger.trim(`Stopping webhook: ${port}`, "restarts.log");
+            })
+            .then(() => {
+                console.log("exit");
+                setTimeout(() => {
+                    process.exit();
+                }, 3000);
+            });
+    });
 
     req.on("error", error => {
         console.error(error);
