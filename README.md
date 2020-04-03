@@ -1,5 +1,8 @@
 ## Displaying COVID-19 Viral Spread over time
 
+Some details around this project are available [here](https://tandeciarz.com/covid-19-playing-with-data/)
+
+
 ### Requirements:
 * NodeJS v12+
 * [Node PM2](https://www.npmjs.com/package/pm2) (for running as a service)
@@ -47,10 +50,10 @@ In dev, you have to run `node cron.js` every time you want to rebuild the geojso
 
 ### Todo
 
-- [ ] Figure out if I can z-index the points with largest on the bottom
 - [x] Build a webhook to auto-deploy to prod and restart the pm2 jobs
 - [ ] Add an Updates section to the front-end UI somewhere
-- [ ] Enable comparing two different countries' rate of infection
+- [ ] ~~Figure out if I can z-index the points with largest on the bottom~~
+- [ ] ~~Enable comparing two different countries' rate of infection~~
 
 
 ### Resources used

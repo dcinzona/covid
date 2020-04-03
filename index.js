@@ -2,11 +2,11 @@
 const compression = require("compression");
 const express = require("express");
 const app = express();
-//const esriData = require('./esri');
 const fs = require("fs");
 const logger = require("./logger");
 const sharedConfig = require("./docs/js/shared.js");
-const { exec, spawn, spawnSync } = require("child_process");
+const { spawnPromise } = require("./resources/utils");
+
 require("dotenv").config();
 var isDev = process.env.ENV === "DEV";
 
@@ -46,35 +46,36 @@ app.get("/logs/logger", (req, res) => {
 
 var Convert = require("ansi-to-html");
 var convert = new Convert({});
-app.get("/logs/status", (req, res) => {
+app.get("/logs/status", async (req, res, next) => {
     if (checkKey(req)) {
         res.header("Content-Language", "en-US");
         res.header("Cache-Control", "no-cache");
         res.header("Content-Type", "text/html");
-        
+
         process.env.FORCE_COLOR = true;
-        let pm2 = spawn("pm2", ["ls"]);
-
-        pm2.stdout.on("data", data => {
-            console.log(data.toString());
-            res.header("Content-Type", "text/html");
-            res.send(
-                `<html lang="en">
-                    <head>
-                    <style>
-                    html,body { background: #0e0e0e; }
-                    pre { font-family: monospace; }</style>
-                    </head>
-                    <body>
-                    <pre>${convert.toHtml(data.toString())}</pre>
-                    </body>
-                    </html>`
-            );
-        });
-
-        /* */
+        try {
+            let pmProm = await spawnPromise("pm2", ["ls"]);
+            res.send(buildStatusHTML(pmProm));
+        } catch (ex) {
+            console.log(ex);
+            res.end();
+        }
     } else res.sendStatus(403);
 });
+
+function buildStatusHTML(data) {
+    return `<html lang="en">
+                <head>
+                    <style>
+                        html,body { background: #0e0e0e; }
+                        pre { font-family: monospace; }
+                    </style>
+                </head>
+                <body>
+                    <pre>${convert.toHtml(data)}</pre>
+                </body>
+            </html>`;
+}
 
 function checkKey(req) {
     var key = req.query.key;
@@ -88,6 +89,7 @@ function sendLog(file, res) {
         res.sendStatus(404);
     }
 }
+
 function fileExists(path) {
     try {
         if (fs.existsSync(path)) {

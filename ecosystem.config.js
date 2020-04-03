@@ -7,21 +7,27 @@ module.exports = {
             script: "cron.js",
             instances: 1,
             exec_mode: "fork",
-            watch: isDev ? ["*.js"] : false
+            watch: isDev ? ["**/*.js"] : false,
+            autorestart: true,
+            restart_delay: 5000,
         },
         {
             name: "index",
             script: "index.js",
             instances: 1,
             exec_mode: "fork",
-            watch: isDev ? ["*.js"] : false
+            watch: isDev ? ["**/*.js"] : false,
+            autorestart: true,
+            restart_delay: 5000,
         },
         {
             name: "webhook",
             script: "webhook.js",
             instances: 1,
             exec_mode: "fork",
-            watch: isDev ? ["*.js"] : false
-        }
-    ]
+            watch: isDev ? ["**/*.js"] : false,
+            autorestart: true,
+            restart_delay: 5000,
+        },
+    ],
 };

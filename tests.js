@@ -22,7 +22,7 @@ function runWebhookTest() {
     let dj = {
         ref: "refs/heads/master",
         head_commit: {
-            modified: ["buildCSV.js", "cron.js", "webhook-utils.js"]
+            modified: ["buildCSV.js", "cron.js", "webhook-utils.js",'package.json']
         }
     };
     let data = JSON.stringify(dj);
@@ -54,9 +54,7 @@ function runWebhookTest() {
             })
             .then(() => {
                 console.log("exit");
-                setTimeout(() => {
-                    process.exit();
-                }, 3000);
+                process.exit();
             });
     });
 

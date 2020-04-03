@@ -4,6 +4,7 @@ const buildCSV = require("./resources/buildCSV");
 const sharedConfig = require("./docs/js/shared.js");
 const esriData = require("./esri");
 const logger = require("./logger");
+const { spawnPromise } = require("./resources/utils");
 
 require("dotenv").config();
 var isDev = process.env.ENV === "DEV";
@@ -25,6 +26,13 @@ let prevFiles = {};
 cron.schedule("*/5 * * * *", run, {
     scheduled: true,
     timezone: "America/New_York"
+});
+
+cron.schedule("1 * * * *", function(){
+    console.log(spawnPromise("pm2", ["flush"]));
+}, {
+    scheduled: true,
+    timezone: "America/New_York",
 });
 
 logger.trim('Starting cron.js','restarts.log');
