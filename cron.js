@@ -10,7 +10,7 @@ require("dotenv").config();
 var isDev = process.env.ENV === "DEV";
 
 var cf = require("cloudflare")({
-    token: process.env.CF_TOKEN
+    token: process.env.CF_TOKEN,
 });
 
 const cron = require("node-cron");
@@ -21,23 +21,30 @@ let files;
 let filesWithLastMod = {};
 let prevFiles = {};
 
+logger.log("Starting cron.js", "restarts.log");
+
 //run at *:15 EST
 //jk run every 5 min
 cron.schedule("*/5 * * * *", run, {
     scheduled: true,
-    timezone: "America/New_York"
+    timezone: "America/New_York",
 });
 
-cron.schedule("1 * * * *", function(){
-    console.log(spawnPromise("pm2", ["flush"]));
-}, {
+cron.schedule("6 * * * *", flush, {
     scheduled: true,
     timezone: "America/New_York",
 });
 
-logger.trim('Starting cron.js','restarts.log');
-
-run();
+function flush() {
+    return spawnPromise("pm2", ["flush"]).then((d) => {
+        //logger.log(d);
+    });
+}
+/*
+flush().then(() => {
+    run();
+});
+*/
 
 function run() {
     prevFiles = {};
@@ -51,29 +58,29 @@ function run() {
                 return;
             }
 
-            //console.log(`stdout: ${stdout}`);
-
             if (`${stdout}`.trim() === "Already up to date.") {
-                if(isDev) console.log(`[${new Date().toLocaleTimeString()}] Repo has no changes\n`);
+                logger.log(`Repo has no changes`);
                 return;
             }
 
             print(`${filepath}`)
-                .then(function() {
-                    
+                .then(function () {
                     //check each file stat
-                    let shouldBuild = files.some(f => {
-
-                        if(Object.keys(prevFiles).indexOf(f) === -1){
-                            if(isDev) console.log(`prevFiles missing key: ${f}`);
+                    let shouldBuild = files.some((f) => {
+                        if (Object.keys(prevFiles).indexOf(f) === -1) {
+                            if (isDev)
+                                console.log(`prevFiles missing key: ${f}`);
                             return true;
                         }
 
                         let orig_mdate = new Date(prevFiles[f]).getTime();
                         let new_mdate = new Date(filesWithLastMod[f]).getTime();
-                        
-                        if(orig_mdate < new_mdate){
-                            if(isDev) console.log(`${f} ${orig_mdate} < ${new_mdate}`);
+
+                        if (orig_mdate < new_mdate) {
+                            if (isDev)
+                                console.log(
+                                    `${f} ${orig_mdate} < ${new_mdate}`
+                                );
                             return true;
                         }
                     });
@@ -84,8 +91,8 @@ function run() {
                     }
 
                     files = files.sort();
-                    buildCSV.processFiles(files, function(records) {
-                        let recs = records.map(x => {
+                    buildCSV.processFiles(files, function (records) {
+                        let recs = records.map((x) => {
                             let r = {};
                             r.Province_State = x.Province_State;
                             r.Country_Region = x.Country_Region;
@@ -118,10 +125,9 @@ async function print(path) {
     const dir = await fs.promises.opendir(path);
     for await (const dirent of dir) {
         if (dirent.name.endsWith(".csv")) {
-
             let fullPath = `${path}${dirent.name}`;
 
-            const getFileUpdatedDate = fullPath => {
+            const getFileUpdatedDate = (fullPath) => {
                 const stats = fs.statSync(fullPath);
                 return stats.mtime;
             };
@@ -134,7 +140,7 @@ async function print(path) {
 }
 
 function save(path, data) {
-    logger.stat(path).then(origStats => {
+    logger.stat(path).then((origStats) => {
         if (origStats !== undefined) {
             if (origStats.size != data.length) {
                 write(path, data);
@@ -145,12 +151,12 @@ function save(path, data) {
     });
 
     function write(path, data) {
-        fs.writeFile(path, data, { flag: "w+" }, err => {
+        fs.writeFile(path, data, { flag: "w+" }, (err) => {
             if (err) {
                 logger.error(err);
             } else {
                 console.log("Saved: " + path);
-                logger.trim("COVID-19 Data Updated", "./cron_last_updated.log");
+                logger.log("COVID-19 Data Updated", "./cron_last_updated.log");
                 purgeCache();
             }
         });
@@ -164,14 +170,12 @@ function save(path, data) {
                 ? "/api/v1/esri.geojson"
                 : sharedConfig.pubURI;
             let params = {
-                files: [cachedFile]
+                files: [cachedFile],
             };
-            console.log(params);
             cf.zones
                 .purgeCache(process.env.CF_ZONE_ID, params)
-                .then(resp => {
+                .then((resp) => {
                     if (resp.success) {
-                        console.log(resp);
                         logger.log("Cloudflare cache cleared");
                     } else {
                         logger.err(
@@ -181,7 +185,7 @@ function save(path, data) {
                         );
                     }
                 })
-                .catch(err => {
+                .catch((err) => {
                     logger.error(err);
                 });
         } catch (purgeErr) {
@@ -189,3 +193,9 @@ function save(path, data) {
         }
     }
 }
+
+process.on("SIGINT", (code) => {
+    logger.log(`${__filename.replace(`${__dirname}/`,'').toUpperCase()} shutting down...`).then(() => {
+        process.exit(0);
+    });
+});

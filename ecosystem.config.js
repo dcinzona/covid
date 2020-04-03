@@ -10,6 +10,8 @@ module.exports = {
             watch: isDev ? ["**/*.js"] : false,
             autorestart: true,
             restart_delay: 5000,
+            watch_delay: 1000,
+            ignore_watch: ["node_modules"],
         },
         {
             name: "index",
@@ -19,6 +21,8 @@ module.exports = {
             watch: isDev ? ["**/*.js"] : false,
             autorestart: true,
             restart_delay: 5000,
+            watch_delay: 1000,
+            ignore_watch: ["node_modules"],
         },
         {
             name: "webhook",
@@ -28,6 +32,8 @@ module.exports = {
             watch: isDev ? ["**/*.js"] : false,
             autorestart: true,
             restart_delay: 5000,
+            watch_delay: 1000,
+            ignore_watch: ["node_modules"],
         },
     ],
 };

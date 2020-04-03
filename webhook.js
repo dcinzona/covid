@@ -28,5 +28,17 @@ exports.server = http
         res.end();
     })
     .listen(port, () => {
-        logger.trim(`Starting webhook.js on port ${port}`, "restarts.log");
+        logger.log(`Starting webhook.js on port ${port}`, "restarts.log");
     });
+
+process.on("SIGINT", (code) => {
+    logger
+        .log(
+            `${__filename
+                .replace(`${__dirname}/`, "")
+                .toUpperCase()} shutting down...`
+        )
+        .then(() => {
+            process.exit(0);
+        });
+});

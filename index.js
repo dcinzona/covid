@@ -26,22 +26,44 @@ app.get("/", (req, res) => {
 app.get(sharedConfig.dataURI, (req, res) => {
     getEsriDataV2(res);
 });
+
+process.env.FORCE_COLOR = true;
 // Log API
-app.get("/logs/error", (req, res) => {
-    if (checkKey(req)) sendLog("./error.log", res);
-    else res.sendStatus(403);
+app.get("/logs/error", async (req, res) => {
+    if (checkKey(req)) {
+        let spwn = await spawnPromise("pm2", ["logs", "--err", "--nostream"]);
+        res.send(buildStatusHTML(spwn));
+    } else res.sendStatus(403);
 });
-app.get("/logs/restart", (req, res) => {
-    if (checkKey(req)) sendLog("./restarts.log", res);
-    else res.sendStatus(403);
+app.get("/logs/out",async (req, res) => {
+    if (checkKey(req)) {
+        let spwn = await spawnPromise("pm2", ["logs", "--nostream"]);
+        res.send(buildStatusHTML(spwn));
+    } else res.sendStatus(403);
 });
-app.get("/logs/cron", (req, res) => {
-    if (checkKey(req)) sendLog("./cron_last_updated.log", res);
-    else res.sendStatus(403);
+app.get("/logs/index",async (req, res) => {
+    if (checkKey(req)) {
+        let spwn = await spawnPromise("pm2", ["logs", "index", "--nostream"]);
+        res.send(buildStatusHTML(spwn));
+    } else res.sendStatus(403);
 });
-app.get("/logs/logger", (req, res) => {
-    if (checkKey(req)) sendLog("./logger.log", res);
-    else res.sendStatus(403);
+app.get("/logs/webhook",async (req, res) => {
+    if (checkKey(req)) {
+        let spwn = await spawnPromise("pm2", ["logs", "webhook", "--nostream"]);
+        res.send(buildStatusHTML(spwn));
+    } else res.sendStatus(403);
+});
+app.get("/logs/cron",async (req, res) => {
+    if (checkKey(req)) {
+        let spwn = await spawnPromise("pm2", ["logs", "cron", "--nostream"]);
+        res.send(buildStatusHTML(spwn));
+    } else res.sendStatus(403);
+});
+app.get("/logs/", async (req, res) => {
+    if (checkKey(req)) {
+        let spwn = await spawnPromise("pm2", ["logs", "--nostream"]);
+        res.send(buildStatusHTML(spwn));
+    } else res.sendStatus(403);
 });
 
 var Convert = require("ansi-to-html");
@@ -110,5 +132,17 @@ function getEsriDataV2(res) {
 const port = process.env.PORT || 3000;
 
 app.listen(port, () => {
-    logger.trim(`Starting index.js on port ${port}`, "restarts.log");
+    logger.log(`Starting index.js on port ${port}`, "restarts.log");
+});
+
+process.on("SIGINT", (code) => {
+    logger
+        .log(
+            `${__filename
+                .replace(`${__dirname}/`, "")
+                .toUpperCase()} shutting down...`
+        )
+        .then(() => {
+            process.exit(0);
+        });
 });

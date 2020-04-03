@@ -36,10 +36,13 @@ async function restartPM2() {
         }).length > 0;
 
     if (shouldRestart) {
-        logger.trim(`Webhook received modified files: ${exports.modified}`);
-        logger.trim(`restarting all services...`, "restarts.log");
+        logger.log(`Webhook received modified files: ${exports.modified}`);
+        logger.log(`restarting all services...`, "restarts.log");
         process.env.WEBHOOK_PORT = 3001;
-        let pm2 = await spawnPromise("pm2", ["restart", "ecosystem.config.js"]);
+        let pm2 = await spawnPromise("pm2", [
+            "startOrReload",
+            "ecosystem.config.js",
+        ]);
     }
     
     return shouldRestart

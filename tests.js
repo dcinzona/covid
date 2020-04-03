@@ -50,7 +50,7 @@ function runWebhookTest() {
         webhook.job
             .then(function(msg) {
                 console.log(`callback: ${msg}`);
-                logger.trim(`Stopping webhook: ${port}`, "restarts.log");
+                logger.log(`Stopping webhook: ${port}`, "restarts.log");
             })
             .then(() => {
                 console.log("exit");
