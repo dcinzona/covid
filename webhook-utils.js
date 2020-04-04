@@ -10,18 +10,20 @@ const SECRET = process.env.WEBHOOK_SECRET;
 let services = ["index.js", "cron.js", "webhook.js"];
 
 async function pull() {
-    await spawnPromise("git", ["pull"]);
-
-    if (exports.modified.includes("package.json")) {
-        return updateNPM();
-    } else {
-        return restartPM2();
-    }
+    return spawnPromise("git", ["pull"]).then(() => {
+        if (exports.modified.includes("package.json")) {
+            return updateNPM();
+        } else {
+            return restartPM2();
+        }
+    });
 }
 
 async function updateNPM() {
-    await spawnPromise("npm", ["install", "--production"]);
-    return restartPM2();
+    return spawnPromise("npm", ["install", "--production"]).then(() => {
+        return restartPM2();
+    });
+    //return restartPM2();
 }
 
 async function restartPM2() {
@@ -44,7 +46,7 @@ async function restartPM2() {
             "ecosystem.config.js",
         ]);
     }
-    
+
     return shouldRestart
         ? "WEBHOOK DONE - SERVICES RESTARTED"
         : "WEBHOOK DONE - NOTHING TO DO";
@@ -60,3 +62,4 @@ function createSig(chunk) {
 exports.createSig = createSig;
 exports.pull = pull;
 exports.modified = [];
+exports.restart = restartPM2;
