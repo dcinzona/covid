@@ -5,7 +5,6 @@ const webhookUtils = require("./webhook-utils");
 const logger = require("./logger");
 
 //process.env.WEBHOOK_PORT = 3002;
-
 //const webhook = require("./webhook");
 
 if (process.argv.length > 2) {
