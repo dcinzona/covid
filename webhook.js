@@ -20,7 +20,7 @@ exports.server = http
                 if (isAllowed && isMaster) {
                     utils.modified = body.head_commit.modified;
                     exports.job = utils.pull();
-                    res.end();
+                    //res.end();
                 }
             } catch (ex) {
                 //logger.error(`error on data: ${ex}`);
