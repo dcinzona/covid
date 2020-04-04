@@ -8,7 +8,7 @@ const port = process.env.WEBHOOK_PORT || 3001;
 exports.server = http
     .createServer(async function (req, res) {
         req.on("data", async function (chunk) {
-            if (isDev) console.log("received call");
+            logger.log(`Received webhook`);
             const signature = utils.createSig(chunk);
             const isAllowed =
                 req.headers["x-hub-signature"] === signature || isDev;
@@ -21,7 +21,7 @@ exports.server = http
                     await exports.job;
                 }
             } catch (ex) {
-                logger.error(ex);
+                logger.error(`error on data: ${ex}`);
             }
         });
 
