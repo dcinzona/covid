@@ -25,12 +25,12 @@ logger.log("Starting cron.js", "restarts.log");
 
 //run at *:15 EST
 //jk run every 5 min
-cron.schedule("*/5 * * * *", run, {
+let runTask = cron.schedule("*/5 * * * *", run, {
     scheduled: true,
     timezone: "America/New_York",
 });
 
-cron.schedule("6 * * * *", flush, {
+let flushTask = cron.schedule("0 */6 * * *", flush, {
     scheduled: true,
     timezone: "America/New_York",
 });
@@ -189,6 +189,8 @@ process.on("SIGINT", (code) => {
                 .toUpperCase()} shutting down...`
         )
         .then(() => {
+            runTask.destroy();
+            flushTask.destroy();
             process.exit(0);
         });
 });

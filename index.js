@@ -143,6 +143,7 @@ process.on("SIGINT", (code) => {
                 .toUpperCase()} shutting down...`
         )
         .then(() => {
+            this.server.close();
             process.exit(0);
         });
 });
