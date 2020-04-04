@@ -13,25 +13,19 @@ exports.server = http
             const isAllowed =
                 req.headers["x-hub-signature"] === signature || isDev;
 
-            const body = JSON.parse(chunk);
-            const isMaster = body.ref === "refs/heads/master";
-            if (isAllowed && isMaster) {
-                utils.modified = body.head_commit.modified;
-                exports.job = utils.pull();
-                //await exports.job;
-            }
-            /*
+            /* */
             try {
                 const body = JSON.parse(chunk);
                 const isMaster = body.ref === "refs/heads/master";
                 if (isAllowed && isMaster) {
                     utils.modified = body.head_commit.modified;
                     exports.job = utils.pull();
-                    await exports.job;
+                    //await exports.job;
                 }
             } catch (ex) {
                 logger.error(`error on data: ${ex}`);
-            }*/
+            }
+            /* */
         });
 
         res.end();
