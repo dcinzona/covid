@@ -12,6 +12,7 @@ module.exports = {
             restart_delay: 5000,
             watch_delay: 1000,
             ignore_watch: ["node_modules"],
+            exp_backoff_restart_delay: 100,
         },
         {
             name: "index",
@@ -23,6 +24,7 @@ module.exports = {
             restart_delay: 5000,
             watch_delay: 1000,
             ignore_watch: ["node_modules"],
+            exp_backoff_restart_delay: 100,
         },
         {
             name: "webhook",
@@ -34,6 +36,7 @@ module.exports = {
             restart_delay: 5000,
             watch_delay: 1000,
             ignore_watch: ["node_modules"],
+            exp_backoff_restart_delay: 100,
         },
     ],
 };
