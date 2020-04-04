@@ -124,7 +124,7 @@ function fileExists(path) {
 }
 
 function getEsriDataV2(res) {
-    console.log("getting esri data v2");
+    logger.log("getting esri data v2");
     res.header("Content-Type", "application/geo+json");
     res.sendFile("./esri.geojson", { root: __dirname });
 }
