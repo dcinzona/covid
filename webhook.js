@@ -39,6 +39,6 @@ process.on("SIGINT", (code) => {
                 .toUpperCase()} shutting down...`
         )
         .then(() => {
-            process.exit(0);
+            if(isDev) process.exit(0);
         });
 });
