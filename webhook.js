@@ -42,7 +42,7 @@ process.on("SIGINT", (code) => {
                 .toUpperCase()} shutting down...`
         )
         .then(() => {
-            this.server.close();
+            exports.server.close();
             process.exit(0);
         });
 });
