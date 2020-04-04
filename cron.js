@@ -19,7 +19,7 @@ let repo = process.env.COVID_REPO_DIR;
 let filepath = `${repo}/csse_covid_19_data/csse_covid_19_daily_reports/`;
 let files;
 let filesWithLastMod = {};
-let prevFiles = {};
+let esriFileStat = 0;
 
 logger.log("Starting cron.js", "restarts.log");
 
@@ -46,77 +46,64 @@ flush().then(() => {
 });
 */
 
+run();
+
 function run() {
-    prevFiles = {};
-    print(`${filepath}`).then(() => {
-        //make a copy of previous files
-        Object.assign(prevFiles, filesWithLastMod);
+    let geojsonPath = "./esri.geojson";
+    esriFileStat = fs.existsSync(geojsonPath)
+        ? new Date(fs.statSync(geojsonPath).mtime).getTime()
+        : 0;
 
-        exec(`cd "${repo}" && git pull`, (error, stdout, stderr) => {
-            if (error) {
-                logger.error(`exec error: ${error}`);
-                return;
-            }
+    //console.log(`esri.geojson last mod time: ${esriFileStat}`);
 
-            if (`${stdout}`.trim() === "Already up to date.") {
-                logger.log(`Repo has no changes`);
-                return;
-            }
+    exec(`cd "${repo}" && git pull`, (error, stdout, stderr) => {
+        if (error) {
+            logger.error(`exec error: ${error}`);
+            return;
+        }
 
-            print(`${filepath}`)
-                .then(function () {
-                    //check each file stat
-                    let shouldBuild = files.some((f) => {
-                        if (Object.keys(prevFiles).indexOf(f) === -1) {
-                            if (isDev)
-                                console.log(`prevFiles missing key: ${f}`);
-                            return true;
-                        }
+        if (`${stdout}`.trim() === "Already up to date.") {
+        }
 
-                        let orig_mdate = new Date(prevFiles[f]).getTime();
-                        let new_mdate = new Date(filesWithLastMod[f]).getTime();
+        print(`${filepath}`)
+            .then(function () {
+                let maxCallback = (acc, cur) => Math.max(acc, cur);
+                let max = Object.values(filesWithLastMod).reduce(maxCallback);
 
-                        if (orig_mdate < new_mdate) {
-                            if (isDev)
-                                console.log(
-                                    `${f} ${orig_mdate} < ${new_mdate}`
-                                );
-                            return true;
-                        }
+                //console.log(`max timestamp of repo: ${max}`);
+
+                let filesNewerThanJSON = max > esriFileStat;
+
+                logger.log(`${filesNewerThanJSON ? 'geojson is out of date' : 'no new records to process'}`);
+
+                if (!filesNewerThanJSON) return;
+
+                files = files.sort();
+                buildCSV.processFiles(files, function (records) {
+                    let recs = records.map((x) => {
+                        let r = {};
+                        r.Province_State = x.Province_State;
+                        r.Country_Region = x.Country_Region;
+                        r.Country = x.Country_Region;
+                        r.Location = `${x.Lat},${x.Long_}`;
+                        r.Label = x.Combined_Key;
+                        //r.Last_Update = x.Last_Update;
+                        r.Lat = x.Lat;
+                        r.Long = x.Long_;
+                        r.Confirmed = x.Confirmed;
+                        r.time = x.time;
+                        r.IsoDate = x.IsoDate;
+                        r.Combined_Key = x.Combined_Key;
+                        r.UID = x.UID;
+                        r.UID2 = x.UID2;
+                        return r;
                     });
-
-                    // return if no new or modified files
-                    if (shouldBuild === false) {
-                        return; // don't rebuild if there's nothing new.
-                    }
-
-                    files = files.sort();
-                    buildCSV.processFiles(files, function (records) {
-                        let recs = records.map((x) => {
-                            let r = {};
-                            r.Province_State = x.Province_State;
-                            r.Country_Region = x.Country_Region;
-                            r.Country = x.Country_Region;
-                            r.Location = `${x.Lat},${x.Long_}`;
-                            r.Label = x.Combined_Key;
-                            //r.Last_Update = x.Last_Update;
-                            r.Lat = x.Lat;
-                            r.Long = x.Long_;
-                            r.Confirmed = x.Confirmed;
-                            r.time = x.time;
-                            r.IsoDate = x.IsoDate;
-                            r.Combined_Key = x.Combined_Key;
-                            r.UID = x.UID;
-                            r.UID2 = x.UID2;
-                            return r;
-                        });
-                        //save("./data.json", JSON.stringify(recs, null, "\t"));
-                        let esriGeo = JSON.stringify(new esriData(recs));
-                        save("./esri.geojson", esriGeo);
-                    });
-                })
-                .catch(console.error);
-        });
+                    //save("./data.json", JSON.stringify(recs, null, "\t"));
+                    let esriGeo = JSON.stringify(new esriData(recs));
+                    save("./esri.geojson", esriGeo);
+                });
+            })
+            .catch(console.error);
     });
 }
 async function print(path) {
@@ -195,7 +182,13 @@ function save(path, data) {
 }
 
 process.on("SIGINT", (code) => {
-    logger.log(`${__filename.replace(`${__dirname}/`,'').toUpperCase()} shutting down...`).then(() => {
-        process.exit(0);
-    });
+    logger
+        .log(
+            `${__filename
+                .replace(`${__dirname}/`, "")
+                .toUpperCase()} shutting down...`
+        )
+        .then(() => {
+            process.exit(0);
+        });
 });
