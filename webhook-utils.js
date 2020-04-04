@@ -44,9 +44,7 @@ async function restartPM2() {
         let pm2 = await spawnPromise("pm2", [
             "startOrReload",
             "ecosystem.config.js",
-        ], {
-            detached : true
-        });
+        ]);
     }
 
     return shouldRestart
