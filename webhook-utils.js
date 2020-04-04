@@ -23,14 +23,14 @@ async function updateNPM() {
     return spawnPromise("npm", ["install", "--production"]).then(() => {
         return restartPM2();
     });
-    //return restartPM2();
 }
 
 async function restartPM2() {
+
     if (isDev) {
         console.log("checking for need to restart pm2 services");
     }
-    modifiedSet = new Set(exports.modified);
+
     //restart all services when any js files are updated
     let shouldRestart =
         exports.modified.filter((e, i) => {
