@@ -19,8 +19,8 @@ exports.server = http
                 const isMaster = body.ref === "refs/heads/master";
                 if (isAllowed && isMaster) {
                     utils.modified = body.head_commit.modified;
-                    exports.job = utils.pull();
-                    //await exports.job;
+                    exports.job = await utils.pull();
+                    res.end();
                 }
             } catch (ex) {
                 logger.error(`error on data: ${ex}`);
