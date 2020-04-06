@@ -241,7 +241,7 @@ require([
                 return;
             }
 
-            value += 86400 * 120;
+            value += 86400 * 180;
             if (value >= endDate) {
                 value = startDate;
                 stopAnimation();
