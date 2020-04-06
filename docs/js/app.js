@@ -15,8 +15,8 @@ require([
     `${gmt_domainRoot}/js/tooltip.js`,
     `${gmt_domainRoot}/js/popup.js`,
     `${gmt_domainRoot}/js/renderer.js`,
-    `${gmt_domainRoot}/js/mobile.js`
-], function(
+    `${gmt_domainRoot}/js/mobile.js`,
+], function (
     Map,
     MapView,
     GeoJSONLayer,
@@ -30,7 +30,7 @@ require([
     mobile
 ) {
     let layerView;
-    
+
     const layer = new GeoJSONLayer({
         url: util.dataUrl,
         copyright: "CDC / Johns Hopkins",
@@ -38,26 +38,25 @@ require([
         displayField: "place",
         renderer: renderer,
         popupEnabled: false,
-        outFields: ["*"]
+        outFields: ["*"],
     });
-    
 
     const map = new Map({
         basemap: "dark-gray-vector",
-        layers: [layer]
+        layers: [layer],
     });
 
     var view = new MapView({
         map: map,
         container: "viewDiv",
         zoom: 2,
-        center: [5, 35] //[-117.50268, 34.04713]
+        center: [5, 35], //[-117.50268, 34.04713]
     });
 
     view.constraints = {
         minZoom: 1, // User cannot zoom out beyond a scale of 1:500,000
         maxZoom: 8, // User can overzoom tiles
-        rotationEnabled: false // Disables map rotation
+        rotationEnabled: false, // Disables map rotation
     };
 
     var applicationDiv = document.getElementById("applicationDiv");
@@ -80,10 +79,10 @@ require([
         rangeLabelsVisible: false,
         precision: 0,
         labelsVisible: false,
-        disabled: true
+        disabled: true,
     });
 
-    slider.labelFormatFunction = function(value, type) {
+    slider.labelFormatFunction = function (value, type) {
         return util.convertToDateString(value);
     };
 
@@ -93,34 +92,34 @@ require([
         onStatisticField: "ct",
         outStatisticFieldName: "Sum_confirmed",
         statisticType: "sum",
-        precision: 0
+        precision: 0,
     };
 
     const maxTime = {
         onStatisticField: "time",
         outStatisticFieldName: "Max_time",
         statisticType: "max",
-        precision: 0
+        precision: 0,
     };
 
     const placesCount = {
         onStatisticField: "1=1",
         outStatisticFieldName: "record_count",
         statisticType: "count",
-        precision: 0
+        precision: 0,
     };
 
     const statsFields = {
         record_count: "Places Reporting",
         Sum_confirmed: "Total Confirmed",
-        Max_time: "Last Updated"
+        Max_time: "Last Updated",
     };
 
     // wait till the layer view is loaded
-    view.whenLayerView(layer).then(function(lv) {
+    view.whenLayerView(layer).then(function (lv) {
         layerView = lv;
-        setDate(endDate).then(function() {
-            layer.queryFeatures().then(function(results) {
+        setDate(endDate).then(function () {
+            layer.queryFeatures().then(function (results) {
                 let last =
                     results.features[results.features.length - 1].attributes;
                 endDate = last.time;
@@ -128,9 +127,9 @@ require([
                 slider.disabled = false;
                 slider.labelsVisible = true;
                 slider.rangeLabelsVisible = true;
-                setDate(endDate).then(function() {
+                setDate(endDate).then(function () {
                     slider.on("thumb-drag", inputHandler);
-                    playButton.addEventListener("click", function() {
+                    playButton.addEventListener("click", function () {
                         if (playButton.classList.contains("toggled")) {
                             stopAnimation();
                         } else {
@@ -153,7 +152,7 @@ require([
         var dateStr = util.convertToDateString(value);
         slider.viewModel.setValue(0, value);
         layerView.filter = {
-            where: dateFilterField + " = '" + dateStr + "'"
+            where: dateFilterField + " = '" + dateStr + "'",
         };
 
         const statQuery = layerView.filter.createQuery();
@@ -235,13 +234,18 @@ require([
     function animate(startValue) {
         var animating = true;
         var value = startValue;
+        //make speed relative to number of days
+        let speed =
+            Math.round(
+                (new Date(endDate).getTime() - new Date(startDate).getTime()) /
+                    (3600000 * 24)
+            ) * 2.5;
 
-        var frame = function(timestamp) {
+        var frame = function (timestamp) {
             if (!animating) {
                 return;
             }
-
-            value += 86400 * 180;
+            value += 86400 * speed;
             if (value >= endDate) {
                 value = startDate;
                 stopAnimation();
@@ -252,7 +256,7 @@ require([
             setDate(value);
 
             // Update at 30fps
-            setTimeout(function() {
+            setTimeout(function () {
                 requestAnimationFrame(frame);
             }, 1000 / 30);
         };
@@ -260,9 +264,9 @@ require([
         frame();
 
         return {
-            remove: function() {
+            remove: function () {
                 animating = false;
-            }
+            },
         };
     }
 
@@ -273,9 +277,9 @@ require([
         expandTooltip: "Legend",
         view: view,
         content: new Legend({
-            view: view
+            view: view,
         }),
-        expanded: false
+        expanded: false,
     });
 
     const statsDiv = document.getElementById("statsDiv");
