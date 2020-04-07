@@ -36,10 +36,16 @@ define([`${gmt_domainRoot}/js/shared.js`], function() {
             ? `/api/${sharedConfig.apiVersion}/esri.geojson`
             : sharedConfig.pubURI;
 
+
+    function numberWithCommas(x) {
+        return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
     return {
         convertToDateString: convertToDateString,
         dataUrl: dataUrl,
         endDate: endDate,
-        nextUpdate: nextUpdate
+        nextUpdate: nextUpdate,
+        numberWithCommas: numberWithCommas
     };
 });

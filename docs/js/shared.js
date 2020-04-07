@@ -3,7 +3,7 @@
 // enclosed in closure 
 (function(exports) { 
 
-   const apiVersion = "v5";
+   const apiVersion = "v6";
    const dataURI = `/api/${apiVersion}/esri.geojson`;
    const pubURI = `https://covid-data.gmt.io${dataURI}`;
    

@@ -1,4 +1,4 @@
-define(["esri/core/promiseUtils"], function(promiseUtils) {
+define(["esri/core/promiseUtils"], function (promiseUtils) {
     let layerview, view, layer;
 
     function setupHoverTooltip(lv, v, l) {
@@ -10,9 +10,9 @@ define(["esri/core/promiseUtils"], function(promiseUtils) {
 
         var tooltip = createTooltip();
 
-        var hitTest = promiseUtils.debounce(function(event) {
-            return view.hitTest(event).then(function(hit) {
-                var results = hit.results.filter(function(result) {
+        var hitTest = promiseUtils.debounce(function (event) {
+            return view.hitTest(event).then(function (hit) {
+                var results = hit.results.filter(function (result) {
                     return result.graphic.layer === layer;
                 });
 
@@ -22,14 +22,14 @@ define(["esri/core/promiseUtils"], function(promiseUtils) {
 
                 return {
                     graphic: results[0].graphic,
-                    screenPoint: hit.screenPoint
+                    screenPoint: hit.screenPoint,
                 };
             });
         });
 
         function onHover(event) {
             return hitTest(event).then(
-                function(hit) {
+                function (hit) {
                     // remove current highlighted feature
                     var sameObj =
                         hit && OBJECTID === hit.graphic.attributes.OBJECTID;
@@ -55,9 +55,13 @@ define(["esri/core/promiseUtils"], function(promiseUtils) {
                             <div>Date: <span>${graphic.getAttribute(
                                 "dateString"
                             )}</span></div>
-                            <div>Confirmed: <span>${graphic.getAttribute(
-                                "ct"
+                            <div>Confirmed: <span style="color:#f9c653">${numberWithCommas(
+                                graphic.getAttribute("ct")
                             )}</span></div>
+                            <div>Deaths: <span style="color:red">${numberWithCommas(
+                                graphic.getAttribute("d")
+                            )}</span>
+                            <i style="font-size:.8rem">  ${getPercent(graphic.getAttribute("d"), graphic.getAttribute("ct"))}  </i>
                             `
                         );
                     } else {
@@ -68,11 +72,19 @@ define(["esri/core/promiseUtils"], function(promiseUtils) {
                         tooltip.hide();
                     }
                 },
-                function() {}
+                function () {}
             );
         }
 
         view.on("pointer-move", onHover);
+    }
+
+    function getPercent(top, bottom){
+        return `${((top/bottom) *100).toFixed(2)}%`;
+    }
+
+    function numberWithCommas(x) {
+        return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
 
     function createTooltip() {
@@ -115,7 +127,7 @@ define(["esri/core/promiseUtils"], function(promiseUtils) {
         }
 
         return {
-            show: function(point, text) {
+            show: function (point, text) {
                 if (!visible) {
                     x = point.x;
                     y = point.y;
@@ -130,13 +142,13 @@ define(["esri/core/promiseUtils"], function(promiseUtils) {
                 move();
             },
 
-            hide: function() {
+            hide: function () {
                 style.opacity = 0;
                 visible = false;
-            }
+            },
         };
     }
     return {
-        setupHoverTooltip: setupHoverTooltip
+        setupHoverTooltip: setupHoverTooltip,
     };
 });

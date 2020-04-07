@@ -1,182 +1,112 @@
 const { exec } = require("child_process");
-const fs = require("fs");
-const buildCSV = require("./resources/buildCSV");
+const cron = require("node-cron");
+const repoParser = require("./repoParser");
+const fs = require("fs").promises;
 const sharedConfig = require("./docs/js/shared.js");
-const esriData = require("./esri");
 const logger = require("./logger");
 const { spawnPromise } = require("./resources/utils");
-
 require("dotenv").config();
-var isDev = process.env.ENV === "DEV";
-
 var cf = require("cloudflare")({
     token: process.env.CF_TOKEN,
 });
-
-const cron = require("node-cron");
-
 let repo = process.env.COVID_REPO_DIR;
-let filepath = `${repo}/csse_covid_19_data/csse_covid_19_daily_reports/`;
-let files;
-let filesWithLastMod = {};
-let esriFileStat = 0;
+var isDev = process.env.ENV === "DEV";
 
 logger.log("Starting cron.js", "restarts.log");
 
 //run at *:15 EST
 //jk run every 5 min
-let runTask = cron.schedule("*/5 * * * *", run, {
+exports.runTask = cron.schedule("*/5 * * * *", run, {
     scheduled: true,
     timezone: "America/New_York",
 });
 
-let flushTask = cron.schedule("0 */6 * * *", flush, {
+exports.flushTask = cron.schedule("0 * * * *", flush, {
     scheduled: true,
     timezone: "America/New_York",
 });
+
+run(isDev);
 
 function flush() {
-    return spawnPromise("pm2", ["flush"]).then((d) => {
-        //logger.log(d);
-    });
+    return spawnPromise("pm2", ["flush"]).then((d) => {});
 }
-/*
-flush().then(() => {
-    run();
-});
-*/
 
-run();
-
-function run() {
-    let geojsonPath = "./esri.geojson";
-    esriFileStat = fs.existsSync(geojsonPath)
-        ? new Date(fs.statSync(geojsonPath).mtime).getTime()
-        : 0;
-
-    //console.log(`esri.geojson last mod time: ${esriFileStat}`);
-
-    exec(`cd "${repo}" && git pull`, (error, stdout, stderr) => {
+async function run(force = false) {
+    logger.log(`Cron job starting execution...`);
+    await exec(`cd "${repo}" && git pull`, (error, stdout, stderr) => {
         if (error) {
             logger.error(`exec error: ${error}`);
             return;
         }
-
-        if (`${stdout}`.trim() === "Already up to date.") {
-        }
-
-        print(`${filepath}`)
-            .then(function () {
-                let maxCallback = (acc, cur) => Math.max(acc, cur);
-                let max = Object.values(filesWithLastMod).reduce(maxCallback);
-
-                //console.log(`max timestamp of repo: ${max}`);
-
-                let filesNewerThanJSON = max > esriFileStat;
-
-                logger.log(`${filesNewerThanJSON ? 'geojson is out of date' : 'no new records to process'}`);
-
-                if (!filesNewerThanJSON) return;
-
-                files = files.sort();
-                buildCSV.processFiles(files, function (records) {
-                    let recs = records.map((x) => {
-                        let r = {};
-                        r.Province_State = x.Province_State;
-                        r.Country_Region = x.Country_Region;
-                        r.Country = x.Country_Region;
-                        r.Location = `${x.Lat},${x.Long_}`;
-                        r.Label = x.Combined_Key;
-                        //r.Last_Update = x.Last_Update;
-                        r.Lat = x.Lat;
-                        r.Long = x.Long_;
-                        r.Confirmed = x.Confirmed;
-                        r.time = x.time;
-                        r.IsoDate = x.IsoDate;
-                        r.Combined_Key = x.Combined_Key;
-                        r.UID = x.UID;
-                        r.UID2 = x.UID2;
-                        return r;
-                    });
-                    //save("./data.json", JSON.stringify(recs, null, "\t"));
-                    let esriGeo = JSON.stringify(new esriData(recs));
-                    save("./esri.geojson", esriGeo);
-                });
+        repoParser
+            .getEsriData(force)
+            .then((esriGeo) => {
+                if (esriGeo) {
+                    save("./esri.geojson", JSON.stringify(esriGeo))
+                        .then(() => {
+                            logger.log("Cron job done");
+                        })
+                        .catch((err) => {
+                            logger.error(err);
+                        });
+                }
             })
             .catch(console.error);
     });
 }
-async function print(path) {
-    files = [];
-    filesWithLastMod = {};
-    const dir = await fs.promises.opendir(path);
-    for await (const dirent of dir) {
-        if (dirent.name.endsWith(".csv")) {
-            let fullPath = `${path}${dirent.name}`;
 
-            const getFileUpdatedDate = (fullPath) => {
-                const stats = fs.statSync(fullPath);
-                return stats.mtime;
-            };
+async function save(path, data) {
+    return await write(path, data, purgeCache);
 
-            let fname = dirent.name.replace(".csv", "");
-            filesWithLastMod[fname] = getFileUpdatedDate(fullPath);
-            files.push(fname);
-        }
-    }
-}
-
-function save(path, data) {
-    logger.stat(path).then((origStats) => {
-        if (origStats !== undefined) {
-            if (origStats.size != data.length) {
-                write(path, data);
-            } else {
-                console.log("no change to data");
-            }
-        }
-    });
-
-    function write(path, data) {
-        fs.writeFile(path, data, { flag: "w+" }, (err) => {
-            if (err) {
+    async function write(path, data, cb) {
+        await fs
+            .writeFile(path, data, { flag: "w+" })
+            .then(async () => {
+                //console.log("Saved: " + path);
+                logger.log("COVID-19 Data Updated");
+                if (!isDev) {
+                    let purgeResult = await purgeCache();
+                    if (purgeResult) {
+                        logger.log("Cloudflare cache cleared");
+                    }
+                }
+                return "DONE";
+            })
+            .catch((err) => {
                 logger.error(err);
-            } else {
-                console.log("Saved: " + path);
-                logger.log("COVID-19 Data Updated", "./cron_last_updated.log");
-                purgeCache();
-            }
-        });
+                return err;
+            });
     }
 
-    function purgeCache() {
-        if (isDev) return; //don't do anything on cloudflare if dev (now that we know it works)
+    async function purgeCache() {
         //clear cloudflare cache
         try {
-            let cachedFile = isDev
-                ? "/api/v1/esri.geojson"
+            let cachedFiles = isDev
+                ? "https://covid-data.gmt.io/api/v1/esri.geojson"
                 : sharedConfig.pubURI;
             let params = {
-                files: [cachedFile],
+                files: [cachedFiles],
             };
-            cf.zones
+            return cf.zones
                 .purgeCache(process.env.CF_ZONE_ID, params)
                 .then((resp) => {
-                    if (resp.success) {
-                        logger.log("Cloudflare cache cleared");
-                    } else {
+                    if (!resp.success) {
                         logger.err(
                             `Errors clearing cache: ${JSON.stringify(
                                 resp.errors
                             )}`
                         );
                     }
+                    return resp.success;
                 })
                 .catch((err) => {
                     logger.error(err);
+                    return false;
                 });
         } catch (purgeErr) {
             logger.error(purgeErr);
+            return false;
         }
     }
 }
@@ -189,8 +119,8 @@ process.on("SIGINT", (code) => {
                 .toUpperCase()} shutting down...`
         )
         .then(() => {
-            runTask.destroy();
-            flushTask.destroy();
+            exports.runTask.destroy();
+            exports.flushTask.destroy();
             process.exit(0);
         });
 });

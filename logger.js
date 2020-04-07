@@ -8,19 +8,7 @@ function saveLog(message, file = defaultPath, isError = false) {
             .toISOString()
             .substr(0, 10)} ${new Date().toLocaleTimeString()}`;
         let msg = `[${isError ? "ERROR" : "INFO"}]['${dateS}'] ${message}`;
-        resolve(isError ? console.error(msg) : console.log(msg)); 
-        // going to use PM2 logs instead of writing my own
-        /* *
-        try {
-            const log = fs.createWriteStream(file, { flags: "a" });
-            log.write(msg);
-            log.end();
-            resolve(console.log(msg));
-        } catch (err) {
-            console.error(err);
-            if (err) reject(err);
-        }
-        * */
+        resolve(isError ? console.error(msg) : console.log(msg));
     });
 }
 

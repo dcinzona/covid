@@ -4,7 +4,9 @@
   "description": "",
   "main": "parse.js",
   "scripts": {
-    "parse": "node parse.js run",
+    "pm2": "pm2 start ecosystem.config.js",
+    "parse": "node -e \"require('./repoParser').runTask()\"",
+    "buildJson": "node -e \"require('./repoParser').build()\"",
     "web-server": "node index.js",
     "cron": "node cron.js",
     "webhook": "node webhook.js",

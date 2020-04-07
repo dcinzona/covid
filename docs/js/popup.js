@@ -30,37 +30,6 @@ define([
         /* */
     }
 
-    let fields = {
-        type: "fields",
-        fieldInfos: [
-            {
-                fieldName: "country",
-                label: "Country",
-                visible: true
-            },
-            {
-                fieldName: "ct",
-                label: "Confirmed",
-                visible: true
-            },
-            {
-                fieldName: "coords",
-                label: "Coordinates",
-                visible: true
-            },
-            {
-                fieldName: "dateString",
-                label: "Reported On",
-                visible: true
-            }
-        ]
-    };
-
-    let popupTemplate = {
-        title: "{place}",
-        content: fields
-    };
-
     var hitTest = promiseUtils.debounce(function(event) {
         return view.hitTest(event).then(function(hit) {
             var results = hit.results.filter(function(result) {
@@ -93,14 +62,6 @@ define([
         let title = `Spread in <span>${selectedCountry}</span>`;
         view.popup.title = title;
         if (!view.popup.visible) {
-            console.log("showing");
-            /*
-            view.popup.open({
-                location: hit.mapPoint,
-                collapsed: false,
-                content: chartWrapper
-            });
-            */
             view.popup.location = hit.mapPoint;
             view.popup.visible = true;
             view.popup.content = chartWrapper;
@@ -117,18 +78,23 @@ define([
             {
                 onStatisticField: "ct",
                 outStatisticFieldName: "sum_confirmed",
-                statisticType: "sum"
+                statisticType: "sum",
             },
             {
                 onStatisticField: "ct",
                 outStatisticFieldName: "max_confirmed",
-                statisticType: "max"
+                statisticType: "max",
+            },
+            {
+                onStatisticField: "d",
+                outStatisticFieldName: "sum_deaths",
+                statisticType: "sum",
             },
             {
                 onStatisticField: "1=1",
                 outStatisticFieldName: "total_places",
-                statisticType: "count"
-            }
+                statisticType: "count",
+            },
         ];
         query.returnDistinctValues = true;
         query.groupByFieldsForStatistics = ["dateString"];
@@ -153,6 +119,9 @@ define([
         rateChart.data.datasets[0].data = features.map(
             e => e.attributes.sum_confirmed
         );
+        rateChart.data.datasets[1].data = features.map(
+            (e) => e.attributes.sum_deaths
+        );
         //rateChart.data.datasets[0].label = `${selectedCountry} (Total Cases)`;
         rateChart.update();
     }
@@ -173,18 +142,29 @@ define([
                         backgroundColor: "#f9c653",
                         borderWidth: 1,
                         lineTension: 0.1,
-                        data: []
-                    }
-                ]
+                        data: [],
+                    },
+                    {
+                        label: `Deaths`,
+                        showLine: true,
+                        fill: false,
+                        spanGaps: true,
+                        borderColor: "#990000",
+                        backgroundColor: "#990000",
+                        borderWidth: 1,
+                        lineTension: 0.1,
+                        data: [],
+                    },
+                ],
             },
             options: {
                 responsive: true,
                 aspectRatio: 1.5,
                 legend: {
-                    display: false,
-                    onClick: null
+                    display: true,
+                    //onClick: null,
                 },
-                onClick: function(e) {
+                onClick: function (e) {
                     var firstPoint = rateChart.getElementAtEvent(e)[0];
 
                     if (firstPoint) {
@@ -196,7 +176,7 @@ define([
                 },
                 tooltips: {
                     callbacks: {
-                        label: function(tooltipItem, data) {
+                        label: function (tooltipItem, data) {
                             var label =
                                 data.datasets[tooltipItem.datasetIndex].label ||
                                 "";
@@ -208,22 +188,22 @@ define([
 
                             return label;
                         },
-                        afterLabel: function(tooltipItem, data) {
+                        afterLabel: function (tooltipItem, data) {
                             let label = "";
                             let dsi = tooltipItem.datasetIndex;
                             let ds = data.datasets[dsi];
                             let i = tooltipItem.index;
-                            //console.log(data);
                             if (i >= 1) {
                                 let maths = ds.data[i] - ds.data[i - 1];
-                                return `Delta: ${(maths > 0 ? "+" : "") +
-                                    maths}`;
+                                return `Delta: ${
+                                    (maths > 0 ? "+" : "") + maths
+                                }`;
                             }
                             return null;
-                        }
-                    }
-                }
-            }
+                        },
+                    },
+                },
+            },
         });
         //view.popup.content = document.getElementById("rateChart");
     }
@@ -241,16 +221,11 @@ define([
             if (selectedCountry) {
                 const queryParams = getStatQuery();
                 queryParams.where = " country = '" + selectedCountry + "'";
-                //queryParams.outFields = ["*"];
-                //console.log(queryParams);
-                // query the layer with the modified params object
                 layer.queryFeatures(queryParams).then(function(results) {
-                    // prints the array of result graphics to the console
                     let sorted = results.features.sort(sorter);
                     show(sorted, hit);
                 });
             } else {
-                //hide histogram
                 hide();
             }
         });
@@ -258,6 +233,6 @@ define([
     return {
         init: init,
         onClick: runQuery,
-        template: popupTemplate
+        //template: popupTemplate
     };
 });

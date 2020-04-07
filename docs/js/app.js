@@ -95,6 +95,13 @@ require([
         precision: 0,
     };
 
+    const deathSum = {
+        onStatisticField: "d",
+        outStatisticFieldName: "Sum_deaths",
+        statisticType: "sum",
+        precision: 0,
+    };
+
     const maxTime = {
         onStatisticField: "time",
         outStatisticFieldName: "Max_time",
@@ -111,7 +118,8 @@ require([
 
     const statsFields = {
         record_count: "Places Reporting",
-        Sum_confirmed: "Total Confirmed",
+        Sum_confirmed: "Global Confirmed",
+        Sum_deaths: "Global Deaths",
         Max_time: "Last Updated",
     };
 
@@ -156,7 +164,7 @@ require([
         };
 
         const statQuery = layerView.filter.createQuery();
-        statQuery.outStatistics = [magSum, placesCount];
+        statQuery.outStatistics = [magSum, deathSum, placesCount];
 
         return layer
             .queryFeatures(statQuery)
@@ -178,12 +186,27 @@ require([
                 var attributes = result.features[0].attributes;
                 for (name in statsFields) {
                     if (attributes[name] && attributes[name] != null) {
-                        const html =
-                            "<div>" +
-                            statsFields[name] +
-                            ": <b><span> " +
-                            attributes[name].toFixed(0) +
-                            "</span></b></div>";
+                        let Sum_confirmed = attributes['Sum_confirmed'].toFixed(0);
+                        let Sum_deaths = attributes['Sum_deaths'].toFixed(0);
+
+                        const html = `<div>
+                            ${statsFields[name]} : 
+                            <b><span> 
+                            ${util.numberWithCommas(
+                                attributes[name].toFixed(0)
+                            )}
+                            </span></b><i>
+                            ${
+                                name == "Sum_deaths"
+                                    ? "(" +
+                                      (
+                                          (Sum_deaths / Sum_confirmed) *
+                                          100
+                                      ).toFixed(2) +
+                                      "%)"
+                                    : ""
+                            }</i>
+                            </div>`;
                         htmls.push(html);
                     }
                 }
@@ -197,7 +220,7 @@ require([
                 if (htmls[0] == undefined) {
                     statsDiv.innerHTML = statsHtml;
                 } else {
-                    statsDiv.innerHTML = htmls[1] + statsHtml;
+                    statsDiv.innerHTML = htmls[1] + htmls[2] + statsHtml;
                 }
             }
         }

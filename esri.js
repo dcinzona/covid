@@ -25,7 +25,6 @@ module.exports = class payload {
 
     constructor(data){
         this.features = [];
-        console.log(data.length);
         data.forEach(rec => {
             let time = Date.parse(rec.IsoDate);
             if(time){
@@ -60,24 +59,19 @@ class properties {
     ct;
     place;
     time;
-    //title;
     country;
     dateString;
-    coords;
-    //uid;
-    //uid2;
-    //Country_Region;
-    //Prov_State
+    //coords;
+    d;
+    r;
     constructor(rec){
         this.ct = parseInt(rec.Confirmed);
         this.place = rec.Label == 'United Kingdom, United Kingdom' ? 'United Kingdom' : rec.Label.trim();
         this.time = Date.parse(rec.IsoDate);
         this.dateString = rec.IsoDate;
-        this.coords = rec.Location;
+        //this.coords = rec.Location;
         this.country = rec.Country;
-        //this.uid = rec.UID;
-        //this.uid2 = rec.UID2;
-        //this.Prov_State = rec.Province_State;
-        //this.Country_Region = rec.Country_Region;
+        this.d = parseInt(rec.Deaths || 0);
+        this.r = parseInt(rec.Recovered || 0);
     }
 }

@@ -20,25 +20,23 @@ function processFiles(files, callback) {
     records = [];
     for (let index = files.length - 1; index >= 0; index--) {
         let fname = files[index];
-        console.info("******** Starting: " + fname);
 
         let d = fs.readFileSync(`${filepath}${fname}.csv`).toString("utf8");
         let recs = parse(d, { columns: true }).filter(x => {
-            return parseInt(x.Confirmed) >= 1;
+            return parseInt(x.Confirmed) > 0;
         });
-        for (let i = 0; i < recs.length; i++) {
+        let ct = recs.length;
+        for (let i = 0; i < ct; i++) {
             processRecord(recs[i], files[index]);
         }
-
-        console.log("Records Processed: " + recs.length);
-        //parser.write(fs.readFileSync(`${filepath}${fname}.csv`));
-        //parser.end();
     }
     callback(processRecords());
 }
 
 function processRecord(record, fname) {
     record.Confirmed = parseInt(record.Confirmed);
+    record.Deaths = parseInt(record.Deaths);
+    record.Recovered = parseInt(record.Recovered);
     if (record.Confirmed >= 1) {
         record = setDates(record, fname);
         record = setCombined(record);
@@ -252,12 +250,6 @@ function formatDate(value) {
     return `${year}-${month}-${dayOfMonth}`;
 }
 
-function getTomorrow(value) {
-    const tomorrow = new Date(value);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow;
-}
-
 function processRecords() {
     let sorted = records
         .filter(x => {
@@ -266,13 +258,9 @@ function processRecords() {
         .map(x => {
             x = normalizeCombinedKey(x);
             //fixing issue where combined key exists and includes 'Unassigned'
-            let unassginedFixed = false;
             if (x.Combined_Key.startsWith("Unassigned")) {
-                //console.log(`[${x.IsoDate}] ${x.Combined_Key} ${x.Confirmed}`);
                 let fixed = x.Combined_Key.replace("Unassigned,", "").trim();
-                //console.log(`[${x.IsoDate}] ${x.Combined_Key} => ${fixed}`);
                 x.Combined_Key = fixed;
-                unassginedFixed = true;
             }
             //fix combined keys that include us county (reduce to just state, country)
             let spl = x.Combined_Key.split(",");
@@ -285,10 +273,6 @@ function processRecords() {
             spl = x.Combined_Key.split(",");
             if (x.Country_Region == "US" && spl.length == 2) {
                 x.Combined_Key = `${spl[0].trim()}, ${spl[1].trim()}`;
-            }
-
-            if(unassginedFixed && isDev){
-                //console.log(`[${x.IsoDate}] ${x.Combined_Key} = ${x.Confirmed}`);
             }
 
             //update coordinates based on state
@@ -314,6 +298,8 @@ function processRecords() {
             if (!r[key]) r[key] = e;
             else {
                 r[key].Confirmed += e.Confirmed;
+                r[key].Deaths += e.Deaths;
+                r[key].Recovered += e.Recovered;
             }
             return r;
         }, {})
@@ -328,7 +314,6 @@ exports.makeCsv = function(recs, callback) {
             header: true
         },
         function(err, data) {
-            //console.log(data);
             callback(data);
         }
     );
