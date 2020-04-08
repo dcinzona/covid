@@ -75,25 +75,32 @@ async function save(path, data) {
 
     async function writeToDocsData(data) {
         let path = "docs/data/mapdata.json";
-        if(isDev){
+        if (isDev) {
             //checkout remote file first
-            await spawnPromise('git',['checkout', 'master', path]);
+            await spawnPromise("git", ["checkout", "master", path]);
         }
         return await fs.writeFile(`./${path}`, data, { flag: "w+" });
     }
 
     async function pushMapData() {
+        let path = "docs/data/mapdata.json";
         //commit and push mapdata.json
         return spawnPromise("git", [
             "commit",
-            "-am",
+            "-m",
             "mapdata automated update",
-        ]).then(async () => {
-            await spawnPromise("git", ["push"]);
-            return "DATA PUSHED";
-        }).catch((err)=>{
-            return logger.error(err);
-        });
+            path,
+        ])
+            .then(async () => {
+                if (!isDev) {
+                    await spawnPromise("git", ["push"]);
+                    return logger.log("DATA PUSHED");
+                }
+                return logger.log("Running in dev, not pushing");
+            })
+            .catch((err) => {
+                return logger.error(err);
+            });
     }
 
     async function purgeCache() {
