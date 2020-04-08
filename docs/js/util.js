@@ -31,11 +31,7 @@ define([`${gmt_domainRoot}/js/shared.js`], function() {
     }
     setDates();
 
-    let dataUrl =
-        window.location.hostname == "localhost"
-            ? `/api/${sharedConfig.apiVersion}/esri.geojson`
-            : sharedConfig.pubURI;
-
+    let dataUrl = sharedConfig.pubURI;
 
     function numberWithCommas(x) {
         return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");

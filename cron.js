@@ -53,15 +53,15 @@ async function run(force = false) {
                             logger.error(err);
                         });
                 }
-                return 'esriGeo was undefined';
+                return "esriGeo was undefined";
             })
             .catch(console.error);
     });
 }
 
-let currentBranch;
 async function save(path, data) {
-    currentBranch = await spawnPromise("git", ["branch", "--show-current"]);
+    let mapdatapath = "docs/data/mapdata.json";
+    let currentBranch = await spawnPromise("git", ["branch", "--show-current"]);
 
     return await write(path, data, purgeCache);
 
@@ -69,11 +69,24 @@ async function save(path, data) {
         return await fs
             .writeFile(path, data, { flag: "w+" })
             .then(async () => {
-                console.log(`current branch: ${currentBranch}`);
+                //save to docs directory
+                //why are we doing this? So that we can host all files directly from github pages and not touch out server at all
+                //the server basically just functions as a worker to build the file and then push it back to the master repo
                 await writeToDocsData(data);
-                if(!isDev) await pushMapData();
-                if(!isDev) await purgeCache();
-                return 'Writes done';
+                let mapStatus = await spawnPromise("git", [
+                    "status",
+                    "-s",
+                    mapdatapath,
+                ]);
+                //check if the docs file has changed
+                let isChanged = mapStatus.indexOf(mapdatapath) != -1;
+                if (isChanged) {
+                    await pushMapData();
+                    if (!isDev) await purgeCache();
+                } else {
+                    logger.log("Map data did not change after compile");
+                }
+                return "Writes done";
             })
             .catch((err) => {
                 logger.error(err);
@@ -82,38 +95,34 @@ async function save(path, data) {
     }
 
     async function writeToDocsData(data) {
-        let path = "docs/data/mapdata.json";
         if (isDev && currentBranch === "master") {
             //checkout remote file first
-            await spawnPromise("git", ["checkout", "master", path]);
+            await spawnPromise("git", ["checkout", "master", mapdatapath]);
         }
-        return await fs.writeFile(`./${path}`, data, { flag: "w+" });
+        return await fs.writeFile(`./${mapdatapath}`, data, { flag: "w+" });
     }
 
     async function pushMapData() {
-        let path = "docs/data/mapdata.json";
-        console.log(currentBranch);
-        if (currentBranch === "master") {
-            //commit and push mapdata.json
-            return spawnPromise("git", [
-                "commit",
-                "-m",
-                "mapdata automated update",
-                path,
-            ])
-                .then(async () => {
-                    if (!isDev) {
-                        await spawnPromise("git", ["push"]);
-                        return logger.log("DATA PUSHED");
-                    } else {
-                        return logger.log("Running in dev, not pushing");
-                    }
-                })
-                .catch((err) => {
-                    return logger.error(err);
-                });
-            Í;
-        }
+        //if (currentBranch === "master") {
+        //commit and push mapdata.json
+        return spawnPromise("git", [
+            "commit",
+            "-m",
+            "mapdata automated update",
+            mapdatapath,
+        ])
+        .then(async () => {
+            if (!isDev) {
+                await spawnPromise("git", ["push"]);
+                return logger.log("DATA PUSHED");
+            } else {
+                return logger.log("Running in dev, not pushing");
+            }
+        })
+        .catch(async (err) => {
+            return logger.error(err);
+        });
+        //}
     }
 
     async function purgeCache() {
