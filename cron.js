@@ -29,7 +29,9 @@ flushTask = cron.schedule("0 */12 * * *", flush, {
 run(isDev);
 
 function flush() {
-    return spawnPromise("pm2", ["flush"]).then((d) => {});
+    return spawnPromise("pm2", ["flush"]).then((d) => {
+        logger.log(`Logs purged by automated process`);
+    });
 }
 
 async function run(force = false) {
