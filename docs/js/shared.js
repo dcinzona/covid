@@ -5,7 +5,7 @@
 
    const apiVersion = "v6";
    const dataURI = `/api/${apiVersion}/esri.geojson`;
-   const pubURI = `https://covid-data.gmt.io${dataURI}`;
+   const pubURI = '/data/mapdata.json';//`https://covid.gmt.io/data/mapdata.json`;//`https://covid-data.gmt.io${dataURI}`;
    
     // Export the function to exports 
     // In node.js this will be exports  
