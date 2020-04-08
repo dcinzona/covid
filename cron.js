@@ -17,12 +17,12 @@ logger.log("Starting cron.js", "restarts.log");
 //run at *:15 EST
 //jk run every 5 min
 runTask = cron.schedule("*/5 * * * *", run, {
-    scheduled: true,
+    scheduled: isDev ? false : true,
     timezone: "America/New_York",
 });
 
 flushTask = cron.schedule("0 */12 * * *", flush, {
-    scheduled: true,
+    scheduled: isDev ? false : true,
     timezone: "America/New_York",
 });
 
@@ -36,16 +36,16 @@ function flush() {
 
 async function run(force = false) {
     logger.log(`Cron job starting execution...`);
-    await exec(`cd "${repo}" && git pull`, (error, stdout, stderr) => {
+    await exec(`cd "${repo}" && git pull`, async (error, stdout, stderr) => {
         if (error) {
             logger.error(`exec error: ${error}`);
             return;
         }
-        repoParser
+        return await repoParser
             .getEsriData(force)
-            .then((esriGeo) => {
+            .then(async (esriGeo) => {
                 if (esriGeo) {
-                    save("./esri.geojson", JSON.stringify(esriGeo))
+                    return save("./esri.geojson", JSON.stringify(esriGeo))
                         .then(() => {
                             logger.log("Cron job done");
                         })
@@ -53,20 +53,28 @@ async function run(force = false) {
                             logger.error(err);
                         });
                 }
+                return 'esriGeo was undefined';
             })
             .catch(console.error);
     });
 }
 
+let currentBranch;
 async function save(path, data) {
+    currentBranch = await spawnPromise("git", ["branch", "--show-current"]);
+
     return await write(path, data, purgeCache);
 
     async function write(path, data, cb) {
-        await fs
+        return await fs
             .writeFile(path, data, { flag: "w+" })
-            .then(writeToDocsData)
-            .then(pushMapData)
-            .then(purgeCache)
+            .then(async () => {
+                console.log(`current branch: ${currentBranch}`);
+                await writeToDocsData(data);
+                if(!isDev) await pushMapData();
+                if(!isDev) await purgeCache();
+                return 'Writes done';
+            })
             .catch((err) => {
                 logger.error(err);
                 return err;
@@ -75,7 +83,7 @@ async function save(path, data) {
 
     async function writeToDocsData(data) {
         let path = "docs/data/mapdata.json";
-        if (isDev) {
+        if (isDev && currentBranch === "master") {
             //checkout remote file first
             await spawnPromise("git", ["checkout", "master", path]);
         }
@@ -84,23 +92,28 @@ async function save(path, data) {
 
     async function pushMapData() {
         let path = "docs/data/mapdata.json";
-        //commit and push mapdata.json
-        return spawnPromise("git", [
-            "commit",
-            "-m",
-            "mapdata automated update",
-            path,
-        ])
-            .then(async () => {
-                if (!isDev) {
-                    await spawnPromise("git", ["push"]);
-                    return logger.log("DATA PUSHED");
-                }
-                return logger.log("Running in dev, not pushing");
-            })
-            .catch((err) => {
-                return logger.error(err);
-            });
+        console.log(currentBranch);
+        if (currentBranch === "master") {
+            //commit and push mapdata.json
+            return spawnPromise("git", [
+                "commit",
+                "-m",
+                "mapdata automated update",
+                path,
+            ])
+                .then(async () => {
+                    if (!isDev) {
+                        await spawnPromise("git", ["push"]);
+                        return logger.log("DATA PUSHED");
+                    } else {
+                        return logger.log("Running in dev, not pushing");
+                    }
+                })
+                .catch((err) => {
+                    return logger.error(err);
+                });
+            Í;
+        }
     }
 
     async function purgeCache() {
