@@ -64,41 +64,36 @@ async function save(path, data) {
     async function write(path, data, cb) {
         await fs
             .writeFile(path, data, { flag: "w+" })
-            .then(async () => {
-                //console.log("Saved: " + path);
-                await fs
-                    .writeFile("./docs/data/mapdata.json", data, { flag: "w+" })
-                    .then(async () => {
-                        
-                        //commit and push mapdata.json
-                        await spawnPromise("git", [
-                            "commit",
-                            "-am",
-                            "mapdata automated update",
-                        ]).then(async () => {
-                            await spawnPromise("git", ["push"]);
-                            return 'DATA PUSHED';
-                        });
-
-                        logger.log("COVID-19 Data Updated");
-                        //purge CF cache
-                        if (!isDev) {
-                            let purgeResult = await purgeCache();
-                            if (purgeResult) {
-                                logger.log("Cloudflare cache cleared");
-                            }
-                        }
-                        return "DONE";
-                    })
-                    .catch((err) => {
-                        logger.error(err);
-                        return err;
-                    });
-            })
+            .then(writeToDocsData)
+            .then(pushMapData)
+            .then(purgeCache)
             .catch((err) => {
                 logger.error(err);
                 return err;
             });
+    }
+
+    async function writeToDocsData(data) {
+        let path = "docs/data/mapdata.json";
+        if(isDev){
+            //checkout remote file first
+            await spawnPromise('git',['checkout', 'master', path]);
+        }
+        return await fs.writeFile(`./${path}`, data, { flag: "w+" });
+    }
+
+    async function pushMapData() {
+        //commit and push mapdata.json
+        return spawnPromise("git", [
+            "commit",
+            "-am",
+            "mapdata automated update",
+        ]).then(async () => {
+            await spawnPromise("git", ["push"]);
+            return "DATA PUSHED";
+        }).catch((err)=>{
+            return logger.error(err);
+        });
     }
 
     async function purgeCache() {
@@ -122,6 +117,8 @@ async function save(path, data) {
                                 resp.errors
                             )}`
                         );
+                    } else {
+                        logger.log("Cloudflare cache cleared");
                     }
                     return resp.success;
                 })
