@@ -17,18 +17,22 @@ exports.server = http
             try {
                 const body = JSON.parse(chunk);
                 const isMaster = body.ref === "refs/heads/master";
-                if (isAllowed && isMaster) {
+                const pusherName = body.pusher.name;
+                let shouldPull =
+                    pusherName != "Automated Process" && isAllowed && isMaster;
+                logger.log(`Received push from ${pusherName}. Nothing to do.`);
+
+                if (shouldPull) {
                     utils.modified = body.head_commit.modified;
                     exports.job = utils.pull();
-                    //res.end();
                 }
             } catch (ex) {
                 //logger.error(`error on data: ${ex}`);
             }
             /* */
-        });
 
-        res.end();
+            res.end();
+        });
     })
     .listen(port, () => {
         logger.log(`Starting webhook.js on port ${port}`, "restarts.log");

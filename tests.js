@@ -11,12 +11,13 @@ if (process.argv.length > 2) {
     let arg1 = process.argv[2];
     switch (arg1) {
         case "webhook":
-            runWebhookTest();
+            let name = process.argv.length > 3 ? process.argv[3] : undefined;
+            runWebhookTest(name);
             break;
     }
 }
 
-function runWebhookTest() {
+function runWebhookTest(pusherName = 'dcinzona') {
     console.log("testing webhook");
     let dj = {
         ref: "refs/heads/master",
@@ -28,6 +29,10 @@ function runWebhookTest() {
                 "package.json",
             ],
         },
+        pusher: {
+            name: pusherName,
+            email: "dcinzona@users.noreply.github.com"
+        }
     };
     let data = JSON.stringify(dj);
     let sig = webhookUtils.createSig(data);
@@ -51,23 +56,6 @@ function runWebhookTest() {
     req.on("close", () => {
         console.log("request closed");
         let port = process.env.WEBHOOK_PORT;
-        /*
-        if (webhook.job) {
-            webhook.job
-                .then(function (msg) {
-                    console.log(`callback: ${msg}`);
-                    logger.log(`Stopping webhook: ${port}`, "restarts.log");
-                })
-                .then(() => {
-                    console.log("exit");
-                    process.exit();
-                });
-        } else {
-            logger.log(`Stopping webhook: ${port}`, "restarts.log");
-            process.exit();
-        }
-        */
-
         logger.log(`Stopping webhook: ${port}`, "restarts.log");
         process.exit();
     });

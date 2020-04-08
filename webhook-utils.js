@@ -11,7 +11,7 @@ let services = ["index.js", "cron.js", "webhook.js"];
 
 async function pull() {
     return spawnPromise("git", ["pull"]).then(() => {
-        if (exports.modified.includes("package.json")) {
+        if (arrayContainsString("package.json")) {
             return updateNPM();
         } else {
             return restartPM2();
@@ -56,7 +56,20 @@ function createSig(chunk) {
         .digest("hex")}`;
 }
 
+function arrayContainsString(arr, inputStr) {
+    if (Array.isArray(arr) === false || arr.length === 0) {
+        return false;
+    }
+    let re = new RegExp(`(${inputStr}$)`, "i");
+    let found =
+        arr.filter((x) => {
+            return x.trim().match(re);
+        }).length > 0;
+    return found;
+};
+
 exports.createSig = createSig;
 exports.pull = pull;
 exports.modified = [];
 exports.restart = restartPM2;
+exports.arrayContainsString = arrayContainsString;
