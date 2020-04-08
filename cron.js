@@ -16,12 +16,12 @@ logger.log("Starting cron.js", "restarts.log");
 
 //run at *:15 EST
 //jk run every 5 min
-exports.runTask = cron.schedule("*/5 * * * *", run, {
+runTask = cron.schedule("*/5 * * * *", run, {
     scheduled: true,
     timezone: "America/New_York",
 });
 
-exports.flushTask = cron.schedule("0 * * * *", flush, {
+flushTask = cron.schedule("0 */12 * * *", flush, {
     scheduled: true,
     timezone: "America/New_York",
 });
@@ -88,6 +88,9 @@ async function save(path, data) {
             let params = {
                 files: [cachedFiles],
             };
+            if(!isDev){
+                params.files.push('https://covid.gmt.io');
+            }
             return cf.zones
                 .purgeCache(process.env.CF_ZONE_ID, params)
                 .then((resp) => {
@@ -119,8 +122,8 @@ process.on("SIGINT", (code) => {
                 .toUpperCase()} shutting down...`
         )
         .then(() => {
-            exports.runTask.destroy();
-            exports.flushTask.destroy();
+            runTask.destroy();
+            flushTask.destroy();
             process.exit(0);
         });
 });

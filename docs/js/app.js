@@ -49,15 +49,22 @@ require([
     var view = new MapView({
         map: map,
         container: "viewDiv",
-        zoom: 2,
+        //zoom: 2,
+        scale: 73957338,
         center: [5, 35], //[-117.50268, 34.04713]
     });
 
     view.constraints = {
-        minZoom: 1, // User cannot zoom out beyond a scale of 1:500,000
-        maxZoom: 8, // User can overzoom tiles
+        //minZoom: 1, // User cannot zoom out beyond a scale of 1:500,000
+        //maxZoom: 8, // User can overzoom tiles
+        minScale: 4622333,
+        maxScale: 247914677,
         rotationEnabled: false, // Disables map rotation
     };
+      view.watch("scale", function (newValue) {
+          console.log(newValue);
+          //layer.renderer = newValue <= 72224 ? simpleRenderer : heatmapRenderer;
+      });
 
     var applicationDiv = document.getElementById("applicationDiv");
     var playButton = document.getElementById("playButton");
