@@ -17,10 +17,15 @@ exports.server = http
             try {
                 const body = JSON.parse(chunk);
                 const isMaster = body.ref === "refs/heads/master";
-                const pusherName = body.pusher.name;
+                const pusherName = body.head_commit.author.name;
                 let shouldPull =
                     pusherName != "Automated Process" && isAllowed && isMaster;
-                logger.log(`Received push from ${pusherName}. Nothing to do.`);
+
+                if (pusherName === "Automated Process") {
+                    logger.log(
+                        `Received push from ${pusherName}. Nothing to do.`
+                    );
+                }
 
                 if (shouldPull) {
                     utils.modified = body.head_commit.modified;

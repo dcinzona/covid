@@ -28,10 +28,9 @@ function runWebhookTest(pusherName = 'dcinzona') {
                 "webhook-utils.js",
                 "package.json",
             ],
-        },
-        pusher: {
-            name: pusherName,
-            email: "dcinzona@users.noreply.github.com"
+            author: {
+                name: pusherName
+            }
         }
     };
     let data = JSON.stringify(dj);
