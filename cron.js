@@ -17,12 +17,12 @@ logger.log("Starting cron.js", "restarts.log");
 //run at *:15 EST
 //jk run every 5 min
 runTask = cron.schedule("*/5 * * * *", run, {
-    scheduled: isDev ? false : true,
+    scheduled: !isDev,
     timezone: "America/New_York",
 });
 
 flushTask = cron.schedule("0 */12 * * *", flush, {
-    scheduled: isDev ? false : true,
+    scheduled: !isDev,
     timezone: "America/New_York",
 });
 
