@@ -66,14 +66,34 @@ async function save(path, data) {
             .writeFile(path, data, { flag: "w+" })
             .then(async () => {
                 //console.log("Saved: " + path);
-                logger.log("COVID-19 Data Updated");
-                if (!isDev) {
-                    let purgeResult = await purgeCache();
-                    if (purgeResult) {
-                        logger.log("Cloudflare cache cleared");
-                    }
-                }
-                return "DONE";
+                await fs
+                    .writeFile("./docs/data/mapdata.json", data, { flag: "w+" })
+                    .then(async () => {
+                        
+                        //commit and push mapdata.json
+                        await spawnPromise("git", [
+                            "commit",
+                            "-am",
+                            "mapdata automated update",
+                        ]).then(async () => {
+                            await spawnPromise("git", ["push"]);
+                            return 'DATA PUSHED';
+                        });
+
+                        logger.log("COVID-19 Data Updated");
+                        //purge CF cache
+                        if (!isDev) {
+                            let purgeResult = await purgeCache();
+                            if (purgeResult) {
+                                logger.log("Cloudflare cache cleared");
+                            }
+                        }
+                        return "DONE";
+                    })
+                    .catch((err) => {
+                        logger.error(err);
+                        return err;
+                    });
             })
             .catch((err) => {
                 logger.error(err);
@@ -90,8 +110,8 @@ async function save(path, data) {
             let params = {
                 files: [cachedFiles],
             };
-            if(!isDev){
-                params.files.push('https://covid.gmt.io');
+            if (!isDev) {
+                params.files.push("https://covid.gmt.io");
             }
             return cf.zones
                 .purgeCache(process.env.CF_ZONE_ID, params)
