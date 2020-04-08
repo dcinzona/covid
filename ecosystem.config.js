@@ -8,7 +8,7 @@ module.exports = {
             instances: 1,
             exec_mode: "fork",
             watch: isDev ? ["**/*.js"] : false,
-            autorestart: true,
+            autorestart: false,
             restart_delay: 5000,
             watch_delay: 1000,
             ignore_watch: ["node_modules"],
