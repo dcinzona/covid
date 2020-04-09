@@ -5,13 +5,11 @@
   "main": "parse.js",
   "scripts": {
     "pm2": "pm2 start ecosystem.config.js",
-    "parse": "node -e \"require('./repoParser').runTask()\"",
-    "buildJson": "node -e \"require('./repoParser').build()\"",
     "web-server": "node index.js",
     "cron": "node cron.js",
     "webhook": "node webhook.js",
     "webhook-test": "node tests.js webhook",
-    "webdata": "node resources/webdata.js"
+    "webdata": "node -e \"require('./resources/webdata').run()\""
   },
   "keywords": [],
   "author": "",

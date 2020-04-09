@@ -34,11 +34,10 @@ exports.getCsvFiles = async function (path = filepath) {
     };
 };
 
-function newDataDetected(lastModArray) {
+function newDataDetected(lastModArray, geojsonPath = "./esri.geojson") {
     if (Object.values(lastModArray).length == 0) {
         return false;
     }
-    let geojsonPath = "./esri.geojson";
     esriFileStat = fs.existsSync(geojsonPath)
         ? new Date(fs.statSync(geojsonPath).mtime).getTime()
         : 0;
@@ -55,31 +54,11 @@ function buildDataset(files) {
     return new Promise((resolve, reject) => {
         if (files && Array.isArray(files)) {
             buildCSV.processFiles(files, function (records) {
-                resolve(mapRecords(records));
+                resolve(buildCSV.mapRecords(records));
             });
         } else {
             reject(`invalid files array: ${JSON.stringify(files)}`);
         }
-    });
-}
-
-function mapRecords(records){
-    return records.map((x) => {
-        let r = {};
-        r.Province_State = x.Province_State;
-        r.Country_Region = x.Country_Region;
-        r.Country = x.Country_Region;
-        //r.Location = `${x.Lat},${x.Long_}`;
-        r.Label = x.Combined_Key;
-        r.Lat = x.Lat;
-        r.Long = x.Long_;
-        r.time = x.time;
-        r.IsoDate = x.IsoDate;
-        r.Combined_Key = x.Combined_Key;
-        r.Confirmed = x.Confirmed;
-        r.Deaths = x.Deaths || 0;
-        r.Recovered = x.Recovered || 0;
-        return r;
     });
 }
 

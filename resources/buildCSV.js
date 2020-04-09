@@ -194,6 +194,23 @@ function setCombined(record) {
         record.Lat = 0;
         record.Long_ = 0;
     }
+    if (
+        record.Province_State != null &&
+        record.Province_State.indexOf("Grand Princess") !== -1
+    ) {
+        record.Combined_Key = `Grand Princess, ${record.Country_Region}`;
+        record.Lat = -1;
+        record.Long_ = 1;
+    }
+    if (
+        record.Country_Region != null &&
+        (record.Country_Region.indexOf("Grand Princess") !== -1 ||
+            record.Country_Region.indexOf("Diamond Princess") !== -1)
+    ) {
+        record.Combined_Key = `${record.Country_Region}`;
+        record.Lat = 1;
+        record.Long_ = -1;
+    }
 
     return normalizeCombinedKey(record);
 }
@@ -320,7 +337,7 @@ function processRecords() {
             else {
                 r[key].Confirmed += e.Confirmed;
                 r[key].Deaths += e.Deaths;
-                r[key].Recovered += e.Recovered;
+                //r[key].Recovered += e.Recovered;
             }
             return r;
         }, {})
@@ -340,7 +357,30 @@ exports.makeCsv = function (recs, callback) {
     );
 };
 
+exports.mapRecords = function (records) {
+    return records.map((x) => {
+        let r = {};
+        r.Province_State = x.Province_State;
+        r.Country_Region = x.Country_Region;
+        r.Country = x.Country_Region;
+        r.Label = x.Combined_Key;
+        r.Lat = parseFloat(x.Lat);
+        r.Long = parseFloat(x.Long_);
+        r.time = x.time;
+        r.IsoDate = x.IsoDate;
+        r.Combined_Key = x.Combined_Key;
+        r.Confirmed = x.Confirmed;
+        r.Deaths = x.Deaths || 0;
+        r.Recovered = x.Recovered || 0;
+        r.UID = `${x.IsoDate}:${x.Combined_Key}`;
+        return r;
+    });
+}
+
 exports.setCombined = setCombined;
 exports.normalizeCombinedKey = normalizeCombinedKey;
 exports.processRecord = processRecord;
 exports.processRecords = processRecords;
+exports.recMapContains = recMapContains;
+exports.recMapGet = recMapGet;
+exports.recMapSet = recMapSet;

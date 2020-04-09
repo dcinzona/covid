@@ -1,35 +1,19 @@
 //git clone --single-branch --branch web-data https://github.com/CSSEGISandData/COVID-19.git COVID-19-web-data
 //git clone https://github.com/CSSEGISandData/COVID-19.git COVID-19-web-data
-const csv = require("csv");
 const parse = require("csv-parse/lib/sync");
-const { exec } = require("child_process");
+const { exec, execSync } = require("child_process");
 const fs = require("fs");
 require("dotenv").config();
-const isDev = process.env.ENV === "DEV";
 const buildCSV = require("./buildCSV");
-const sharedConfig = require("../docs/js/shared.js");
+const dataWriter = require("./dataWriter");
 const esriData = require("../esri");
 const logger = require("../logger");
 const firstBy = require("thenby");
+const repoParser = require("../repoParser");
+const {spawnPromise} = require("./utils");
 
-let repo = process.env.COVID_REPO_DIR + "-web-data";
-
-//fields
-//Country_Region	Last_Update	Confirmed	Deaths	Recovered	Active	Delta_Confirmed	Delta_Recovered	Incident_Rate	People_Tested	People_Hospitalized	Province_State	FIPS	UID	iso3
-//CONTAINS US STATES DATA
-//Usually lags by a 2 days (e.g. 4/6/20)
-let archivedTimeCSV = `${repo}/archived_data/data/cases_time.csv`; //historical dates, no lat long
-
-//fields
-//Province_State	Country_Region	Last_Update	Lat	Long_	Confirmed	Deaths	Recovered	Active	Admin2	FIPS	Combined_Key	Incident_Rate	People_Tested	People_Hospitalized	UID	ISO3
-//has cases from "yesterday" (e.g. 4/7/20)
-let archivedCases = `${repo}/archived_data/data/cases.csv`; //no history but has lat long
-
-//fields
-//Country_Region	Last_Update	Confirmed	Deaths	Recovered	Active	Delta_Confirmed	Delta_Recovered
-//DOES NOT CONTAIN DATA BY US STATE
-//Do I need this data?
-let recentCasesCountry = `${repo}/data/cases_country.csv`;
+let repo = process.env.COVID_REPO_DIR// + "-web-data";
+//branches = master ()
 
 //fields
 //FIPS	Admin2	Province_State	Country_Region	Last_Update	Lat	Long_	Confirmed	Deaths	Recovered	Active	Combined_Key
@@ -37,12 +21,13 @@ let recentCasesCountry = `${repo}/data/cases_country.csv`;
 let recentCases = `${repo}/data/cases.csv`;
 
 //last updated date format is M/D/YY for some unknown reason
-
-let files = [archivedTimeCSV, archivedCases, recentCases, recentCasesCountry];
-async function run() {
-    return fs.access(repo, function (error) {
+let forceRun = false;
+async function run(force = false) {
+    forceRun = force;
+    buildCSV.records = [];
+    let d = await fs.access(repo, function (error) {
         if (error) {
-            console.log("Directory does not exist.  Cloning repo....");
+            logger.log("Directory does not exist.  Cloning repo....");
 
             return exec(
                 `git clone https://github.com/CSSEGISandData/COVID-19.git ${repo}`,
@@ -54,120 +39,131 @@ async function run() {
                 }
             );
         } else {
-            console.log("Directory exists.");
+            console.info("Directory exists.");
             return checkout();
         }
     });
 }
 
 async function checkout() {
-    console.log("checking out branch and getting latest data");
-    return exec(
-        `cd ${repo} && git checkout web-data && git pull`,
-        (err, output, stderr) => {
-            if (err) {
-                return logger.error(err);
+    logger.log("checking out master branch to build time series data set");
+    await setBranch("master");
+    let jsonData = await repoParser.getJSONData(forceRun);
+    console.info(`Daily reports record count: ${jsonData.length}`);
+    buildCSV.records = [];
+    //use array.concat
+    logger.log("checking out web-data and getting latest data");
+    await setBranch("web-data");
+    if (csvFilesExist([recentCases])) {
+        logger.log("Processing recentCases");
+        let recs = await parseCsv(recentCases);
+        logger.log("Finalizing recentRecords: " + recs.length);
+        let recs2 = finalize(recs);
+        logger.log(`Mapping to common format and joining datasets`);
+        let recsToJoin = [];
+        buildCSV.mapRecords(recs2).forEach((rec) => {
+            let jdFoundIdx = jsonData.findIndex((el) => {
+                return el.UID === rec.UID;
+            });
+            if (jdFoundIdx > -1) {
+                jsonData[jdFoundIdx] = rec;
+            } else {
+                recsToJoin.push(rec);
             }
-            return processFiles();
-        }
-    );
+        });
+        jsonData = jsonData.concat(recsToJoin).sort(firstBy("time"));
+    }
+    console.info(`Concatenated data record count: ${jsonData.length}`);
+    logger.log(`Saving to file`);
+    return saveAsGeoJSON(jsonData);
 }
 
-async function processFiles() {
-    console.log("processing files: checking if they exist");
+async function setBranch(branch) {
+    try {
+        return execSync(`git checkout ${branch} && git pull`, {cwd: repo});
+    } catch (ex) {
+        //return logger.error("Error running setBranch\n" + ex);
+    }
+}
+
+function csvFilesExist(arr) {
     let allFilesExist = true;
-    files.forEach((path) => {
+    arr.forEach((path) => {
         //make sure files exist
         if (fs.existsSync(path)) {
-            console.log(`${path} csv exists`);
+            console.info(`${path} csv exists`);
         } else {
-            console.error(`CSV NOT FOUND: ${path}`);
+            logger.error(`CSV NOT FOUND: ${path}`);
             allFilesExist = false;
         }
     });
-    if (allFilesExist) {
-        console.log("all files exist, processing data");
-        buildCSV.records = [];
-        await setCountryGeos();
-        console.log(buildCSV.recMap);
-        console.log(buildCSV.recMap.filter((x) => "Canada" in x));
-        //read CSVs and process
-        console.log("Processing archivedCases");
-        await parseCsv(archivedCases);
-        //console.log(buildCSV.records[0]);
-        console.log(buildCSV.records.length);
-        console.log("Processing recentCases");
-        await parseCsv(recentCases);
-        //console.log(buildCSV.records[0]);
-        console.log(buildCSV.records.length);
-        console.log("Processing archivedTimeCSV");
-        await parseCsv(archivedTimeCSV);
-        //console.log(buildCSV.records[0]);
-        console.log(buildCSV.records.length);
-        console.log("Processing processRecords");
-        let recs = finalize();
-        console.log(recs[0]);
-        console.log(recs[recs.length - 1]);
-        console.log(recs.length);
-        console.log(recs.filter((x) => x.Combined_Key == "New York, US"));
-        return recs;
-    } else {
-        return console.error("required files are missing... ending process");
-    }
+    return allFilesExist;
 }
-
-async function setCountryGeos() {
-    let d = fs.readFileSync(`${recentCasesCountry}`).toString("utf8");
-    let recs = parse(d, { columns: true })
-        .filter((x) => {
-            return x.Lat || false;
-        })
-        .map((x) => {
-            let ret = {};
-            ret[x.Country_Region.trim()] = {
-                Lat: x.Lat,
-                Long_: x.Long_,
-            };
-            if (!recMapContains(x.Country_Region.trim())) {
-                buildCSV.recMap.push(ret);
-            }
-            return ret;
-        });
-
-    return recs;
-}
-
+exports.CSVLastUpdatedDate = new Date();
+//we are only processing one CSV here (the most recent data)
 async function parseCsv(file) {
+    //get file last modified date
+    exports.CSVLastUpdatedDate = await lastUpdatedDate(file);
+    let Last_Updated = fixDateFormat(exports.CSVLastUpdatedDate.toISOString());
     let d = fs.readFileSync(`${file}`).toString("utf8");
-    let last;
-    if (buildCSV.records.length > 0) {
-        last = buildCSV.records.sort(firstBy("time"))[
-            buildCSV.records.length - 1
-        ];
-    }
     let recs = parse(d, { columns: true })
         .filter((x) => {
             return parseInt(x.Confirmed) > 0;
         })
         .map(checkUSCombined)
         .map((x) => {
-            x.Last_Update = fixDateFormat(x.Last_Update);
+            x.Confirmed = parseInt(x.Confirmed);
+            x.Deaths = parseInt(x.Deaths);
+            x.Recovered = parseInt(x.Recovered);
+            x.Last_Reported = x.Last_Update;
+            //Set last updated to last modified date on file for continuity over time
+            x.Last_Update = Last_Updated;
             x.IsoDate = x.Last_Update;
             x.time = new Date(x.Last_Update).getTime();
-            x.ck2 = `${x.IsoDate}:${x.Province_State}:${x.Country_Region}`
+            x.ck2 = `${x.IsoDate}:${x.Province_State}:${x.Country_Region}`;
+            x = setLatLongForSpecialCases(x);
             return x;
-        })
-        .filter((x) => {
-            return last ? x.time != last.time && !buildCSV.records.some(b => b.ck2 === x.ck2) : true;
-        })
-        .map((x) => {
-            return buildCSV.processRecord(x);
-        })
-        .sort(firstBy("time"));
+        });
     return recs;
 }
 
+async function lastUpdatedDate(file) {
+    //const { mtime, ctime } = fs.statSync(file);
+    /*
+    let mtime = execSync(
+        `git --no-pager log -1 --pretty="format:%at" ${file}`
+    , {cwd:repo});
+    */
+    mtime = await spawnPromise('git',['--no-pager', 'log','-1','--pretty=%ai',file], {cwd : repo});
+    mtime = new Date(mtime);
+    console.log(mtime.toLocaleDateString());
+    return mtime;
+}
+
+function setLatLongForSpecialCases(rec) {
+    switch (rec.Combined_Key.trim()) {
+        case "MS Zaandam":
+            rec.Lat = 53.644638;
+            rec.Long_ = 3.390743;
+            break;
+        case "Northwest Territories, Canada":
+            rec.Lat = 74.994164;
+            rec.Long_ = -121.780487;
+            break;
+        case "Diamond Princess, US":
+            rec.Lat = 26.115986;
+            rec.Long_ = -90.787142;
+            break;
+        case "Northern Mariana Islands, US":
+            rec.Lat = 15.18883;
+            rec.Long_ = 145.7535;
+            break;
+    }
+    return rec;
+}
+
 function checkUSCombined(record) {
+    record.Province_State = record.Province_State || "";
     record.Combined_Key =
         record.Province_State.trim() !== ""
             ? `${record.Province_State.trim()}, ${record.Country_Region.trim()}`
@@ -176,10 +172,6 @@ function checkUSCombined(record) {
         record.Combined_Key = record.Combined_Key.substring(1);
     }
     return record;
-}
-
-function recMapContains(input) {
-    return buildCSV.recMap.findIndex((x) => input in x) !== -1;
 }
 
 function fixDateFormat(input) {
@@ -202,60 +194,41 @@ function fixDateFormat(input) {
             return input.trim();
         }
     }
-    console.error("Invalid date: " + input);
-    throw "";
-    return null;
+    logger.error("Invalid date: " + input).then(() => {
+        throw "";
+    });
 }
 
-function finalize() {
-    let sorted = buildCSV.records
-        .sort(firstBy("time"))
+function finalize(recs = buildCSV.records) {
+    let sorted = recs
         .filter((x) => {
             return x.Combined_Key != "US, US";
         })
         .map((x) => {
-            //x = buildCSV.normalizeCombinedKey(x);
-            //fixing issue where combined key exists and includes 'Unassigned'
-            if (x.Combined_Key.startsWith("Unassigned")) {
-                let fixed = x.Combined_Key.replace("Unassigned,", "").trim();
-                x.Combined_Key = fixed;
-            }
-            /* *
-            //fix combined keys that include us county (reduce to just state, country)
-            let spl = x.Combined_Key.split(",");
-            x.Combined_Key =
-                spl.length > 2
-                    ? `${spl[1].trim()}, ${spl[2].trim()}`
-                    : x.Combined_Key;
-
-            //fix for some combined keys missing spaces
-            spl = x.Combined_Key.split(",");
-            if (x.Country_Region == "US" && spl.length == 2) {
-                x.Combined_Key = `${spl[0].trim()}, ${spl[1].trim()}`;
-            }
-
             //update coordinates based on state
-            x.Lat = recMapContains(x.Combined_Key)
-                ? recMapGet(x.Combined_Key).Lat
+            x.Lat = buildCSV.recMapContains(x.Combined_Key)
+                ? buildCSV.recMapGet(x.Combined_Key).Lat
                 : x.Lat;
-            x.Long_ = recMapContains(x.Combined_Key)
-                ? recMapGet(x.Combined_Key).Long_
+            x.Long_ = buildCSV.recMapContains(x.Combined_Key)
+                ? buildCSV.recMapGet(x.Combined_Key).Long_
                 : x.Long_;
+
+            x = setLatLongForSpecialCases(x);
             //console.log(x);
             //throw '';
             //set unique identifiers
-            */
+            /* */
             x.Location = `${x.Lat},${x.Long_}`;
             x.UID = `${x.IsoDate}:${x.Location}`;
             x.UID2 = `${x.Combined_Key}:${x.IsoDate}`;
 
             return x;
-        })
-        .sort(firstBy("time"));
-
+        });
+    //.sort(firstBy("Confirmed")).reverse();
+    //throw '';
     var result = Object.values(
         sorted.reduce(function (r, e) {
-            var key = e.UID2;
+            var key = e.Combined_Key;
             if (!r[key]) r[key] = e;
             else {
                 r[key].Confirmed += e.Confirmed;
@@ -265,6 +238,62 @@ function finalize() {
             return r;
         }, {})
     );
-    return result;
+    console.log(
+        "Records missing Lat, Long_:",
+        result.filter((x) => {
+            return x.Lat === "";
+        })
+    );
+    return (buildCSV.records = result);
 }
-run();
+
+async function saveAsGeoJSON(recs) {
+    let esriGeo = new esriData(recs, exports.CSVLastUpdatedDate);
+    await dataWriter.save("./esri2.geojson", JSON.stringify(esriGeo));
+    return esriGeo;
+}
+
+exports.run = run;
+
+//NOTE: May need to pull archived data from the master branch time series, then take current data from web-data branch and merge...
+
+/* *
+//fields
+//Country_Region	Last_Update	Confirmed	Deaths	Recovered	Active	Delta_Confirmed	Delta_Recovered	Incident_Rate	People_Tested	People_Hospitalized	Province_State	FIPS	UID	iso3
+//CONTAINS US STATES DATA
+//Usually lags by a 2 days (e.g. 4/6/20)
+let archivedTimeCSV = `${repo}/data/cases_time.csv`; //historical dates, no lat long
+
+//fields
+//Province_State	Country_Region	Last_Update	Lat	Long_	Confirmed	Deaths	Recovered	Active	Admin2	FIPS	Combined_Key	Incident_Rate	People_Tested	People_Hospitalized	UID	ISO3
+//has cases from "yesterday" (e.g. 4/7/20)
+let archivedCases = `${repo}/archived_data/data/cases.csv`; //no history but has lat long
+
+//fields
+//Country_Region	Last_Update	Confirmed	Deaths	Recovered	Active	Delta_Confirmed	Delta_Recovered
+//DOES NOT CONTAIN DATA BY US STATE
+//Do I need this data?
+let recentCasesCountry = `${repo}/data/cases_country.csv`;
+/* */
+
+/* *
+async function setCountryGeos(file) {
+    let d = fs.readFileSync(`${file}`).toString("utf8");
+    let recs = parse(d, { columns: true })
+        .filter((x) => {
+            return x.Lat || false;
+        })
+        .map(checkUSCombined)
+        .map((x) => {
+            if (!buildCSV.recMapContains(x.Combined_Key)) {
+                buildCSV.recMapSet(x.Combined_Key, {
+                    Lat: parseFloat(x.Lat),
+                    Long_: parseFloat(x.Long_),
+                });
+            }
+            return x;
+        });
+
+    return recs;
+}
+/* */
