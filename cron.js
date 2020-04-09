@@ -61,7 +61,11 @@ async function run(force = false) {
 
 async function save(path, data) {
     let mapdatapath = "docs/data/mapdata.json";
-    let currentBranch = await spawnPromise("git", ["branch", "--show-current"]);
+    let currentBranch = await spawnPromise("git", [
+        "rev-parse",
+        "--abbrev-ref",
+        "HEAD"
+    ]);
 
     return await write(path, data, purgeCache);
 
