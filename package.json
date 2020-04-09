@@ -10,7 +10,8 @@
     "web-server": "node index.js",
     "cron": "node cron.js",
     "webhook": "node webhook.js",
-    "webhook-test": "node tests.js webhook"
+    "webhook-test": "node tests.js webhook",
+    "webdata": "node resources/webdata.js"
   },
   "keywords": [],
   "author": "",

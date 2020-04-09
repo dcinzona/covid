@@ -13,16 +13,17 @@ let filepath = `${repo}/csse_covid_19_data/csse_covid_19_daily_reports/`;
 
 exports.processFiles = processFiles;
 
-let records;
-let recMap = stateCoords.getRecMap();
+//let records;
+exports.recMap = stateCoords.getRecMap();
+exports.records = [];
 
 function processFiles(files, callback) {
-    records = [];
+    exports.records = [];
     for (let index = files.length - 1; index >= 0; index--) {
         let fname = files[index];
 
         let d = fs.readFileSync(`${filepath}${fname}.csv`).toString("utf8");
-        let recs = parse(d, { columns: true }).filter(x => {
+        let recs = parse(d, { columns: true }).filter((x) => {
             return parseInt(x.Confirmed) > 0;
         });
         let ct = recs.length;
@@ -38,7 +39,9 @@ function processRecord(record, fname) {
     record.Deaths = parseInt(record.Deaths);
     record.Recovered = parseInt(record.Recovered);
     if (record.Confirmed >= 1) {
-        record = setDates(record, fname);
+        if (fname) {
+            record = setDates(record, fname);
+        }
         record = setCombined(record);
         //fixing bad data
         if (
@@ -48,31 +51,48 @@ function processRecord(record, fname) {
             let cln = Object.assign({}, record);
             cln.Province_State = null;
             cln.Combined_Key = "France";
-            records.push(cln);
+            exports.records.push(cln);
             record.Confirmed = 20;
         }
 
         if (record.Lat != undefined) {
-            if (record.Combined_Key && !recMap[record.Combined_Key]) {
+            if (record.Combined_Key && !recMapContains(record.Combined_Key)) {
                 if (record.Combined_Key.indexOf("Unassigned,") === -1) {
-                    recMap[record.Combined_Key] = {
+                    recMapSet(record.Combined_Key, {
                         Lat: record.Lat,
-                        Long_: record.Long_
-                    };
+                        Long_: record.Long_,
+                    });
                 }
             }
         } else {
-            if (recMap[record.Combined_Key]) {
-                record.Lat = recMap[record.Combined_Key].Lat;
-                record.Long_ = recMap[record.Combined_Key].Long_;
+            if (recMapContains(record.Combined_Key)) {
+                record.Lat = recMapGet(record.Combined_Key).Lat;
+                record.Long_ = recMapGet(record.Combined_Key).Long_;
             } else {
                 console.log(record.Combined_Key + ": " + record.Confirmed);
+                console.log(record);
+                throw "rec";
             }
         }
         if (record.Lat) {
-            records.push(record);
+            exports.records.push(record);
         }
     }
+}
+
+function recMapContains(input) {
+    return exports.recMap.findIndex(x => input in x) !== -1;
+}
+function recMapGet(input) {
+    return exports.recMap.find((x) => input in x)[input];
+}
+function recMapSet(input, coords) {
+    let rec = {};
+    rec[input] = coords;
+    if(recMapContains(input)){
+        return;//console.log(`Shouldn't hit this`, rec)
+    }
+    exports.recMap.push(rec);
 }
 
 function setDates(record, fname) {
@@ -83,7 +103,7 @@ function setDates(record, fname) {
 }
 
 function setCombined(record) {
-    Object.keys(record).forEach(function(key) {
+    Object.keys(record).forEach(function (key) {
         if (key.indexOf("Province/State") !== -1) {
             record.Province_State = record[key].trim();
             if (
@@ -141,7 +161,7 @@ function setCombined(record) {
             let fromDiamondPrincess = [
                 "Ashland, NE",
                 "Travis, CA",
-                "Lackland, TX"
+                "Lackland, TX",
             ];
             if (record.Province_State) {
                 if (fromDiamondPrincess.includes(record.Province_State)) {
@@ -214,25 +234,25 @@ function normalizeCombinedKey(record) {
         case "Ivory Coast":
             record.Lat = 5.345317;
             record.Long_ = -4.024429;
-            recMap[record.Combined_Key] = {
+            recMapSet(record.Combined_Key, {
                 Lat: record.Lat,
-                Long_: record.Long_
-            };
+                Long_: record.Long_,
+            });
             break;
         case "Cruise Ship, Others":
             record.Lat = 1;
             record.Long_ = 1;
-            recMap[record.Combined_Key] = {
+            recMapSet(record.Combined_Key, {
                 Lat: record.Lat,
-                Long_: record.Long_
-            };
+                Long_: record.Long_,
+            });
         case "Australia":
             record.Lat = -35.282001;
             record.Long_ = 149.128998;
-            recMap[record.Combined_Key] = {
+            recMapSet(record.Combined_Key, {
                 Lat: record.Lat,
-                Long_: record.Long_
-            };
+                Long_: record.Long_,
+            });
             break;
     }
     record.Combined_Key = record.Combined_Key.trim();
@@ -251,11 +271,11 @@ function formatDate(value) {
 }
 
 function processRecords() {
-    let sorted = records
-        .filter(x => {
+    let sorted = exports.records
+        .filter((x) => {
             return x.Combined_Key != "US, US";
         })
-        .map(x => {
+        .map((x) => {
             x = normalizeCombinedKey(x);
             //fixing issue where combined key exists and includes 'Unassigned'
             if (x.Combined_Key.startsWith("Unassigned")) {
@@ -276,13 +296,14 @@ function processRecords() {
             }
 
             //update coordinates based on state
-            x.Lat =
-                x.Combined_Key in recMap ? recMap[x.Combined_Key].Lat : x.Lat;
-            x.Long_ =
-                x.Combined_Key in recMap
-                    ? recMap[x.Combined_Key].Long_
-                    : x.Long_;
-
+            x.Lat = recMapContains(x.Combined_Key)
+                    ? recMapGet(x.Combined_Key).Lat
+                    : x.Lat;
+            x.Long_ = recMapContains(x.Combined_Key)
+                ? recMapGet(x.Combined_Key).Long_
+                : x.Long_;
+            //console.log(x);
+            //throw '';
             //set unique identifiers
             x.Location = `${x.Lat},${x.Long_}`;
             x.UID = `${x.IsoDate}:${x.Location}`;
@@ -293,7 +314,7 @@ function processRecords() {
         .sort(firstBy("time"));
 
     var result = Object.values(
-        sorted.reduce(function(r, e) {
+        sorted.reduce(function (r, e) {
             var key = e.UID2;
             if (!r[key]) r[key] = e;
             else {
@@ -307,14 +328,19 @@ function processRecords() {
     return result;
 }
 
-exports.makeCsv = function(recs, callback) {
+exports.makeCsv = function (recs, callback) {
     csv.stringify(
         recs,
         {
-            header: true
+            header: true,
         },
-        function(err, data) {
+        function (err, data) {
             callback(data);
         }
     );
 };
+
+exports.setCombined = setCombined;
+exports.normalizeCombinedKey = normalizeCombinedKey;
+exports.processRecord = processRecord;
+exports.processRecords = processRecords;
