@@ -21,9 +21,11 @@ exports.points = {
 
 module.exports = class payload {
     type = 'FeatureCollection';
+    last_updated;
     features = [];
 
-    constructor(data){
+    constructor(data, lastUpdated = new Date()){
+        this.last_updated = lastUpdated;
         this.features = [];
         data.forEach(rec => {
             let time = Date.parse(rec.IsoDate);
@@ -42,7 +44,7 @@ class feature {
     geometry;
     properties;
     constructor(rec){
-        this.geometry = new geometry(rec.Lat, rec.Long);
+        this.geometry = new geometry(rec.Lat, rec.Long || rec.Long_);
         this.properties = new properties(rec);
     }
 }

@@ -5,6 +5,7 @@ const gmt_domainRoot = `${window.location.protocol}//${
 }`;
 
 require([
+    "esri/request",
     "esri/Map",
     "esri/views/MapView",
     "esri/layers/GeoJSONLayer",
@@ -17,6 +18,7 @@ require([
     `${gmt_domainRoot}/js/renderer.js`,
     `${gmt_domainRoot}/js/mobile.js`,
 ], function (
+    esriRequest,
     Map,
     MapView,
     GeoJSONLayer,
@@ -30,26 +32,75 @@ require([
     mobile
 ) {
     let layerView;
+    let layer;
+    /* */
+    esriRequest(util.dataUrl, {
+        responseType: "json",
+    }).then(function (response) {
+        // The requested data
+        let geojson = response.data;
+        //console.log(geojson);
+        updateNote.innerText = "Last updated: " + new Date(geojson.last_updated).toLocaleString();
+        const blob = new Blob([JSON.stringify(geojson)], {
+            type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
 
-    const layer = new GeoJSONLayer({
-        url: util.dataUrl,
-        copyright: "CDC / Johns Hopkins",
-        title: "COVID-19 Cases over time",
-        displayField: "place",
-        renderer: renderer,
-        popupEnabled: false,
-        outFields: ["*"],
+        layer = new GeoJSONLayer({
+            url: url,
+            copyright: "CDC / Johns Hopkins",
+            title: "COVID-19 Cases over time",
+            displayField: "place",
+            renderer: renderer,
+            popupEnabled: false,
+            outFields: ["*"],
+        });
+        map.layers = [layer];
+
+        // wait till the layer view is loaded
+        view.whenLayerView(layer).then(function (lv) {
+            layerView = lv;
+            setDate(endDate).then(function () {
+                layer.queryFeatures().then(function (results) {
+                    let last =
+                        results.features[results.features.length - 1]
+                            .attributes;
+                    endDate = last.time;
+                    slider.max = last.time;
+                    slider.disabled = false;
+                    slider.labelsVisible = true;
+                    slider.rangeLabelsVisible = true;
+                    setDate(endDate).then(function () {
+                        slider.on("thumb-drag", inputHandler);
+                        playButton.addEventListener("click", function () {
+                            if (playButton.classList.contains("toggled")) {
+                                stopAnimation();
+                            } else {
+                                startAnimation();
+                            }
+                        });
+                        playButton.classList.remove("disabled");
+                    });
+                });
+            });
+
+            if (!mobile.isMobile()) {
+                tooltip.setupHoverTooltip(layerView, view, layer);
+            }
+
+            popup.init(layerView, view, layer, setDate);
+        });
     });
+    /* */
 
     const map = new Map({
         basemap: "dark-gray-vector",
-        layers: [layer],
+        //layers: [layer],
     });
 
     var view = new MapView({
         map: map,
         container: "viewDiv",
-        //zoom: 2,
         scale: 73957338,
         center: [5, 35], //[-117.50268, 34.04713]
     });
@@ -61,12 +112,13 @@ require([
         maxScale: 247914677,
         rotationEnabled: false, // Disables map rotation
     };
-      view.watch("scale", function (newValue) {
-          console.log(newValue);
-          //layer.renderer = newValue <= 72224 ? simpleRenderer : heatmapRenderer;
-      });
+    /* *
+    view.watch("scale", function (newValue) {
+        console.log(newValue);
+        //layer.renderer = newValue <= 72224 ? simpleRenderer : heatmapRenderer;
+    });
+    /* */
 
-    var applicationDiv = document.getElementById("applicationDiv");
     var playButton = document.getElementById("playButton");
     var titleDiv = document.getElementById("titleDiv");
     var updateNote = document.getElementById("updateNote");
@@ -74,8 +126,6 @@ require([
 
     const startDate = new Date("2020-01-22").getTime();
     let endDate = util.endDate;
-
-    updateNote.innerText = "Next update: " + util.nextUpdate.toLocaleString();
 
     const slider = new Slider({
         container: "slider",
@@ -109,13 +159,6 @@ require([
         precision: 0,
     };
 
-    const maxTime = {
-        onStatisticField: "time",
-        outStatisticFieldName: "Max_time",
-        statisticType: "max",
-        precision: 0,
-    };
-
     const placesCount = {
         onStatisticField: "1=1",
         outStatisticFieldName: "record_count",
@@ -129,39 +172,6 @@ require([
         Sum_deaths: "Global Deaths",
         Max_time: "Last Updated",
     };
-
-    // wait till the layer view is loaded
-    view.whenLayerView(layer).then(function (lv) {
-        layerView = lv;
-        setDate(endDate).then(function () {
-            layer.queryFeatures().then(function (results) {
-                let last =
-                    results.features[results.features.length - 1].attributes;
-                endDate = last.time;
-                slider.max = last.time;
-                slider.disabled = false;
-                slider.labelsVisible = true;
-                slider.rangeLabelsVisible = true;
-                setDate(endDate).then(function () {
-                    slider.on("thumb-drag", inputHandler);
-                    playButton.addEventListener("click", function () {
-                        if (playButton.classList.contains("toggled")) {
-                            stopAnimation();
-                        } else {
-                            startAnimation();
-                        }
-                    });
-                    playButton.classList.remove("disabled");
-                });
-            });
-        });
-
-        if (!mobile.isMobile()) {
-            tooltip.setupHoverTooltip(layerView, view, layer);
-        }
-
-        popup.init(layerView, view, layer, setDate);
-    });
 
     function setDate(value) {
         var dateStr = util.convertToDateString(value);
@@ -193,8 +203,10 @@ require([
                 var attributes = result.features[0].attributes;
                 for (name in statsFields) {
                     if (attributes[name] && attributes[name] != null) {
-                        let Sum_confirmed = attributes['Sum_confirmed'].toFixed(0);
-                        let Sum_deaths = attributes['Sum_deaths'].toFixed(0);
+                        let Sum_confirmed = attributes["Sum_confirmed"].toFixed(
+                            0
+                        );
+                        let Sum_deaths = attributes["Sum_deaths"].toFixed(0);
 
                         const html = `<div>
                             ${statsFields[name]} : 
