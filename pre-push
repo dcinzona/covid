@@ -32,11 +32,11 @@ BRANCH=`git rev-parse --abbrev-ref HEAD`
 PUSH_COMMAND=`ps -ocommand= -p $PPID`
 PROTECTED_BRANCHES="^(dev|release-*|patch-*)"
 FORCE_PUSH="force|delete|-f"
+GETMAPDATA=`git checkout master docs/data/mapdata.json && git commit -am "updating mapdata from master"`
 
 #if [[ "$BRANCH" =~ $PROTECTED_BRANCHES && "$PUSH_COMMAND" =~ $FORCE_PUSH ]]; then
 if [[ "$BRANCH" =~ $PROTECTED_BRANCHES]]; then
-  git checkout master docs/data/mapdata.json
-  git commit -am "updating mapdata from master"
+  echo $GETMAPDATA
   # echo "Prevented force-push to protected branch \"$BRANCH\" by pre-push hook"
   exit 1
 fi
