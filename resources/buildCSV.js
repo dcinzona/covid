@@ -1,5 +1,4 @@
 const fs = require("fs");
-const csv = require("csv");
 const parse = require("csv-parse/lib/sync");
 const states = require("./states_hash");
 const stateCoords = require("./USstates_avg_latLong");
@@ -344,18 +343,6 @@ function processRecords() {
     );
     return result;
 }
-
-exports.makeCsv = function (recs, callback) {
-    csv.stringify(
-        recs,
-        {
-            header: true,
-        },
-        function (err, data) {
-            callback(data);
-        }
-    );
-};
 
 exports.mapRecords = function (records) {
     return records.map((x) => {

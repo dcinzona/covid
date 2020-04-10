@@ -22,33 +22,43 @@ let recentCases = `${repo}/data/cases.csv`;
 
 //last updated date format is M/D/YY for some unknown reason
 let forceRun = false;
+let isRunning = false;
 async function run(force = false) {
+    if(isRunning){
+        logger.log('Previous cron job is already running...exiting');
+        return 0;
+    }
+    isRunning = true;
     forceRun = force;
     buildCSV.records = [];
-    let d = await fs.access(repo, function (error) {
-        if (error) {
-            logger.log("Directory does not exist.  Cloning repo....");
-
-            return exec(
-                `git clone https://github.com/CSSEGISandData/COVID-19.git ${repo}`,
-                (e, so, se) => {
-                    if (e) {
-                        return logger.error(e);
-                    }
-                    return checkout();
-                }
-            );
-        } else {
-            console.info("Directory exists.");
-            return checkout();
-        }
-    });
+    let folderExists = fs.existsSync(repo);
+    if (!folderExists) {
+        logger.log("Directory does not exist.  Cloning repo....");
+        console.log(await spawnPromise('git', ['clone','https://github.com/CSSEGISandData/COVID-19.git', repo]));
+        logger.log(`Clone done.  Starting checkout process...`);
+        await checkout();
+    } else {
+        logger.log("Directory exists. Starting checkout process...");
+        await checkout();
+    }
+    isRunning = false;
 }
 
 async function checkout() {
+    //check if recent data was updated
+    await setBranch('web-data');
+    exports.CSVLastUpdatedDate = await lastUpdatedDate(recentCases);
+    let geojsonPath = './docs/data/mapdata.json';
+    esriFileStat = fs.existsSync(geojsonPath)
+        ? new Date(fs.statSync(geojsonPath).mtime).getTime()
+        : 0;
+    let newData = exports.CSVLastUpdatedDate.getTime() > esriFileStat;
     logger.log("checking out master branch to build time series data set");
     await setBranch("master");
-    let jsonData = await repoParser.getJSONData(forceRun);
+    let jsonData = await repoParser.getJSONData(forceRun || newData);
+    if(jsonData.length === 0 && !newData){
+        return await logger.log(`Daily logs weren't processed and no new data detected`);
+    }
     console.info(`Daily reports record count: ${jsonData.length}`);
     buildCSV.records = [];
     //use array.concat
@@ -80,9 +90,11 @@ async function checkout() {
 
 async function setBranch(branch) {
     try {
-        return execSync(`git checkout ${branch} && git pull`, {cwd: repo});
+        let resp = execSync(`git checkout ${branch} && git pull`, {cwd: repo});
+        return resp;
     } catch (ex) {
-        //return logger.error("Error running setBranch\n" + ex);
+        logger.error("Error running setBranch\n" + ex);
+        return ex;
     }
 }
 
@@ -99,6 +111,7 @@ function csvFilesExist(arr) {
     });
     return allFilesExist;
 }
+
 exports.CSVLastUpdatedDate = new Date();
 //we are only processing one CSV here (the most recent data)
 async function parseCsv(file) {
@@ -128,15 +141,9 @@ async function parseCsv(file) {
 }
 
 async function lastUpdatedDate(file) {
-    //const { mtime, ctime } = fs.statSync(file);
-    /*
-    let mtime = execSync(
-        `git --no-pager log -1 --pretty="format:%at" ${file}`
-    , {cwd:repo});
-    */
     mtime = await spawnPromise('git',['--no-pager', 'log','-1','--pretty=%ai',file], {cwd : repo});
     mtime = new Date(mtime);
-    console.log(mtime.toLocaleDateString());
+    //console.log(mtime.toLocaleDateString());
     return mtime;
 }
 
@@ -214,9 +221,6 @@ function finalize(recs = buildCSV.records) {
                 : x.Long_;
 
             x = setLatLongForSpecialCases(x);
-            //console.log(x);
-            //throw '';
-            //set unique identifiers
             /* */
             x.Location = `${x.Lat},${x.Long_}`;
             x.UID = `${x.IsoDate}:${x.Location}`;
@@ -238,18 +242,18 @@ function finalize(recs = buildCSV.records) {
             return r;
         }, {})
     );
-    console.log(
-        "Records missing Lat, Long_:",
-        result.filter((x) => {
-            return x.Lat === "";
-        })
-    );
+    let missingLatLong = result.filter((x) => {
+        return x.Lat === "";
+    });
+    if(missingLatLong.length > 0){
+        logger.log(`Records missing Lat, Long_: ${missingLatLong}`)
+    }
     return (buildCSV.records = result);
 }
 
 async function saveAsGeoJSON(recs) {
     let esriGeo = new esriData(recs, exports.CSVLastUpdatedDate);
-    await dataWriter.save("./esri2.geojson", JSON.stringify(esriGeo));
+    await dataWriter.save("./esri.geojson", JSON.stringify(esriGeo));
     return esriGeo;
 }
 

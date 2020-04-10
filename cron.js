@@ -1,11 +1,7 @@
-const { exec } = require("child_process");
 const cron = require("node-cron");
-const repoParser = require("./repoParser");
 const logger = require("./logger");
 const { spawnPromise } = require("./resources/utils");
-const dataWriter = require("./resources/dataWriter");
 require("dotenv").config();
-let repo = process.env.COVID_REPO_DIR;
 var isDev = process.env.ENV === "DEV";
 const webData = require("./resources/webdata");
 
@@ -31,10 +27,13 @@ function flush() {
     });
 }
 
-async function run(force = false) {
+function run(force = false) {
     logger.log(`Cron job starting execution...`);
-    return await webData.run(force).catch((err)=>{
-        logger.error(`Error running webdata: ${err}`)
+    webData.run(force).then((x) => {
+        if (x === 1) {
+            //exited because another job is running
+        }
+        else { logger.log(`Cron job completed`); }
     });
 }
 
