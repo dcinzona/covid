@@ -15,7 +15,7 @@ try{
 
 function getMapDataFromMaster(){
   if(getCurrentBranch() == 'dev'){
-    let exec = `git checkout master docs/data/mapdata.json && git commit --amend -m "updating mapdata from master" docs/data/mapdata.json`;
+    let exec = `git checkout origin/master docs/data/mapdata.json && git commit --amend -m "updating mapdata from master" docs/data/mapdata.json`;
     let stdout = childProcessExec(exec,{cwd:process.env.PWD}).toString();
     console.log(stdout);
   }
