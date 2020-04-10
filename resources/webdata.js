@@ -10,7 +10,7 @@ const esriData = require("../esri");
 const logger = require("../logger");
 const firstBy = require("thenby");
 const repoParser = require("../repoParser");
-const {spawnPromise} = require("./utils");
+const { spawnPromise } = require("./utils");
 
 let repo = process.env.COVID_REPO_DIR// + "-web-data";
 //branches = master ()
@@ -24,7 +24,7 @@ let recentCases = `${repo}/data/cases.csv`;
 let forceRun = false;
 let isRunning = false;
 async function run(force = false) {
-    if(isRunning){
+    if (isRunning) {
         logger.log('Previous cron job is already running...exiting');
         return 0;
     }
@@ -34,7 +34,7 @@ async function run(force = false) {
     let folderExists = fs.existsSync(repo);
     if (!folderExists) {
         logger.log("Directory does not exist.  Cloning repo....");
-        console.log(await spawnPromise('git', ['clone','https://github.com/CSSEGISandData/COVID-19.git', repo]));
+        console.log(await spawnPromise('git', ['clone', 'https://github.com/CSSEGISandData/COVID-19.git', repo]));
         logger.log(`Clone done.  Starting checkout process...`);
         await checkout();
     } else {
@@ -52,11 +52,18 @@ async function checkout() {
     esriFileStat = fs.existsSync(geojsonPath)
         ? new Date(fs.statSync(geojsonPath).mtime).getTime()
         : 0;
+    logger.log(`checkout: esriFileStat: ${new Date(esriFileStat).toLocaleString()}`);
+    logger.log(`checkout: max: ${new Date(exports.CSVLastUpdatedDate).toLocaleString()}`);
+
     let newData = exports.CSVLastUpdatedDate.getTime() > esriFileStat;
+    if(newData){
+        logger.log('new data detected...');
+    }
+
     logger.log("checking out master branch to build time series data set");
     await setBranch("master");
     let jsonData = await repoParser.getJSONData(forceRun || newData);
-    if(jsonData.length === 0 && !newData){
+    if (jsonData.length === 0 && !newData) {
         return await logger.log(`Daily logs weren't processed and no new data detected`);
     }
     console.info(`Daily reports record count: ${jsonData.length}`);
@@ -90,7 +97,7 @@ async function checkout() {
 
 async function setBranch(branch) {
     try {
-        let resp = execSync(`git checkout ${branch} && git pull`, {cwd: repo});
+        let resp = execSync(`git checkout ${branch} && git pull`, { cwd: repo });
         return resp;
     } catch (ex) {
         logger.error("Error running setBranch\n" + ex);
@@ -141,7 +148,7 @@ async function parseCsv(file) {
 }
 
 async function lastUpdatedDate(file) {
-    mtime = await spawnPromise('git',['--no-pager', 'log','-1','--pretty=%ai',file], {cwd : repo});
+    mtime = await spawnPromise('git', ['--no-pager', 'log', '-1', '--pretty=%ai', file], { cwd: repo });
     mtime = new Date(mtime);
     //console.log(mtime.toLocaleDateString());
     return mtime;
@@ -245,7 +252,7 @@ function finalize(recs = buildCSV.records) {
     let missingLatLong = result.filter((x) => {
         return x.Lat === "";
     });
-    if(missingLatLong.length > 0){
+    if (missingLatLong.length > 0) {
         logger.log(`Records missing Lat, Long_: ${missingLatLong}`)
     }
     return (buildCSV.records = result);
