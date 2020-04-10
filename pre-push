@@ -33,8 +33,6 @@ PUSH_COMMAND=`ps -ocommand= -p $PPID`
 PROTECTED_BRANCHES="^(dev|release-*|patch-*)"
 FORCE_PUSH="force|delete|-f"
 
-exit 1
-
 #if [[ "$BRANCH" =~ $PROTECTED_BRANCHES && "$PUSH_COMMAND" =~ $FORCE_PUSH ]]; then
 if [[ "$BRANCH" =~ $PROTECTED_BRANCHES]]; then
   git checkout master docs/data/mapdata.json
@@ -43,4 +41,4 @@ if [[ "$BRANCH" =~ $PROTECTED_BRANCHES]]; then
   exit 1
 fi
 
-exit 1
+exit 0
