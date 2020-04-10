@@ -4,17 +4,22 @@
 
 const childProcessExec = require('child_process').execSync;
 const TIMEOUT_THRESHOLD = 3000;
-console.log(process.env);
-getMapDataFromMaster();
-hookCleanup();
+
+//console.log(process.env.PWD);
+try{
+  getMapDataFromMaster();
+  hookCleanup();
+} catch(_){
+  process.exit(1);
+}
 
 function getMapDataFromMaster(){
   if(getCurrentBranch() == 'dev'){
     let exec = `git checkout master docs/data/mapdata.json && git commit --amend -m "updating mapdata from master" docs/data/mapdata.json`;
-    let stdout = childProcessExec(exec).toString();
+    let stdout = childProcessExec(exec,{cwd:process.env.PWD}).toString();
     console.log(stdout);
   }
-  process.exit(1);
+  process.exit(0);
 }
 
 function getCurrentBranch() {
