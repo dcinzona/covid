@@ -4,7 +4,7 @@
 
 const childProcessExec = require('child_process').execSync;
 const TIMEOUT_THRESHOLD = 3000;
-
+console.log(process.env);
 getMapDataFromMaster();
 hookCleanup();
 
