@@ -2,6 +2,7 @@
 #resetting mapdata.json to master branch version
 # INSTALL
 #ln -s ./pre-push.sh .git/hooks/pre-push
+#chmod a+x ./pre-push
 
 BRANCH=`git rev-parse --abbrev-ref HEAD`
 PUSH_COMMAND=`ps -ocommand= -p $PPID`
