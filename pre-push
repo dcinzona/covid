@@ -10,7 +10,7 @@ hookCleanup();
 
 function getMapDataFromMaster(){
   if(getCurrentBranch() == 'dev'){
-    let exec = `git checkout master docs/data/mapdata.json && git commit -am "updating mapdata from master"`;
+    let exec = `git checkout master docs/data/mapdata.json && git commit --amend -m "updating mapdata from master" docs/data/mapdata.json`;
     let stdout = childProcessExec(exec).toString();
     console.log(stdout);
   }
