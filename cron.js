@@ -19,7 +19,7 @@ flushTask = cron.schedule("0 */12 * * *", flush, {
     timezone: "America/New_York",
 });
 
-run(isDev);
+run(true);
 
 function flush() {
     return spawnPromise("pm2", ["flush"]).then((d) => {
