@@ -1,44 +1,30 @@
-#!/bin/sh
+#!/usr/bin/env node
+// INSTALL 
+// cp ./pre-push .git/hooks/pre-push
 
-# An example hook script to verify what is about to be pushed.  Called by "git
-# push" after it has checked the remote status, but before anything has been
-# pushed.  If this script exits with a non-zero status nothing will be pushed.
-#
-# This hook is called with the following parameters:
-#
-# $1 -- Name of the remote to which the push is being done
-# $2 -- URL to which the push is being done
-#
-# If pushing without using a named remote those arguments will be equal.
-#
-# Information about the commits which are being pushed is supplied as lines to
-# the standard input in the form:
-#
-#   <local ref> <local sha1> <remote ref> <remote sha1>
-#
-# This sample shows how to prevent push of commits where the log message starts
-# with "WIP" (work in progress).
+const childProcessExec = require('child_process').execSync;
+const TIMEOUT_THRESHOLD = 3000;
 
-## INSTALL 
-# cp ./pre-push .git/hooks/pre-push
+getMapDataFromMaster();
+hookCleanup();
 
-remote="$1"
-url="$2"
+function getMapDataFromMaster(){
+  if(getCurrentBranch() == 'dev'){
+    let exec = `git checkout master docs/data/mapdata.json && git commit -am "updating mapdata from master"`;
+    let stdout = childProcessExec(exec).toString();
+    console.log(stdout);
+  }
+  process.exit(1);
+}
 
-echo Running $BASH_SOURCE
-set | egrep GIT
-echo PWD is $PWD
-BRANCH=`git rev-parse --abbrev-ref HEAD`
-PUSH_COMMAND=`ps -ocommand= -p $PPID`
-PROTECTED_BRANCHES="^(dev|release-*|patch-*)"
-FORCE_PUSH="force|delete|-f"
-GETMAPDATA=`git checkout master docs/data/mapdata.json && git commit -am "updating mapdata from master"`
+function getCurrentBranch() {
+  const branchesOutput = childProcessExec('git branch').toString();
+  return branchesOutput.split('\n').find(b => b.trim().charAt(0) === '*' ).trim().substring(2);
+}
 
-#if [[ "$BRANCH" =~ $PROTECTED_BRANCHES && "$PUSH_COMMAND" =~ $FORCE_PUSH ]]; then
-if [[ "$BRANCH" =~ $PROTECTED_BRANCHES]]; then
-  echo $GETMAPDATA
-  # echo "Prevented force-push to protected branch \"$BRANCH\" by pre-push hook"
-  exit 1
-fi
-
-exit 0
+function hookCleanup(){
+  setTimeout(() => {
+    console.log('This is a timeout message from your commit-msg git hook. If you see this, something bad happened in your pre-commit hook, and it absolutely did not work as expected.');
+    process.exit(1);
+  },TIMEOUT_THRESHOLD);
+}
