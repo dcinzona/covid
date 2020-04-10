@@ -83,7 +83,7 @@ async function save(path, data) {
         try {
             let cachedFiles = isDev
                 ? "https://covid-data.gmt.io/api/v1/esri.geojson"
-                : sharedConfig.pubURI;
+                : "https://covid.gmt.io" + sharedConfig.pubURI;
             let params = {
                 files: [cachedFiles],
             };

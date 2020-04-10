@@ -1,11 +1,9 @@
-const csv = require("csv");
 const fs = require("fs");
 require("dotenv").config();
-const isDev = process.env.ENV === "DEV";
 const buildCSV = require("./resources/buildCSV");
-const sharedConfig = require("./docs/js/shared.js");
 const esriData = require("./esri");
 const logger = require("./logger");
+const { spawnPromise } = require("./resources/utils");
 
 let repo = process.env.COVID_REPO_DIR;
 let filepath = `${repo}/csse_covid_19_data/csse_covid_19_daily_reports/`;
@@ -17,14 +15,8 @@ exports.getCsvFiles = async function (path = filepath) {
     for await (const dirent of dir) {
         if (dirent.name.endsWith(".csv")) {
             let fullPath = `${path}${dirent.name}`;
-
-            const getFileUpdatedDate = (fullPath) => {
-                const stats = fs.statSync(fullPath);
-                return stats.mtime;
-            };
-
             let fname = dirent.name.replace(".csv", "");
-            filesWithLastMod[fname] = getFileUpdatedDate(fullPath);
+            filesWithLastMod[fname] = await lastUpdatedDateWithGit(fullPath);//getFileUpdatedDate(fullPath);
             files.push(fname);
         }
     }
@@ -34,17 +26,23 @@ exports.getCsvFiles = async function (path = filepath) {
     };
 };
 
-function newDataDetected(lastModArray, geojsonPath = "./esri.geojson") {
+async function lastUpdatedDateWithGit(file) {
+    mtime = await spawnPromise('git',['--no-pager', 'log','-1','--pretty=%ai',file], {cwd : repo});
+    mtime = new Date(mtime);
+    return mtime;
+}
+
+function newDataDetected(lastModArray, geojsonPath = "./docs/data/mapdata.json") {
     if (Object.values(lastModArray).length == 0) {
         return false;
     }
     esriFileStat = fs.existsSync(geojsonPath)
         ? new Date(fs.statSync(geojsonPath).mtime).getTime()
         : 0;
-
+    console.log(`esriFileStat: ${new Date(esriFileStat).toLocaleString()}`);
     let maxCallback = (acc, cur) => Math.max(acc, cur);
     let max = Object.values(lastModArray).reduce(maxCallback);
-
+    console.log(`max: ${new Date(max).toLocaleString()}`);
     let filesNewerThanJSON = max > esriFileStat;
 
     return filesNewerThanJSON;
