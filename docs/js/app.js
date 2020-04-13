@@ -40,7 +40,8 @@ require([
         // The requested data
         let geojson = response.data;
         //console.log(geojson);
-        updateNote.innerText = "Last updated: " + new Date(geojson.last_updated).toLocaleString();
+        updateNote.innerText =
+            "Last updated: " + new Date(geojson.last_updated).toLocaleString();
         const blob = new Blob([JSON.stringify(geojson)], {
             type: "application/json",
         });
@@ -210,7 +211,9 @@ require([
 
                         const html = `<div>
                             ${statsFields[name]} : 
-                            <b><span ${name == 'Sum_deaths' ? "class='cfr'" : ""}> 
+                            <b><span ${
+                                name == "Sum_deaths" ? "class='cfr'" : ""
+                            }> 
                             ${util.numberWithCommas(
                                 attributes[name].toFixed(0)
                             )}
