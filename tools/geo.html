@@ -1,0 +1,82 @@
+<html>
+    <head>
+        <title>amCharts GeoPoint Lookup</title>
+        <link rel="shortcut icon" href="/favicon.png" />
+<script src="https://www.amcharts.com/lib/4/core.js"></script>
+<script src="https://www.amcharts.com/lib/4/maps.js"></script>
+<script src="https://www.amcharts.com/lib/4/geodata/worldLow.js"></script>
+<style>
+    html, body{
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+    }
+    body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+#chartdiv {
+  width: 100%;
+  height: calc(100vh - 20px);
+}
+#coords {
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 5px;
+    background: rgba(255,255, 255, .5);
+}
+
+</style>
+    </head>
+    <body>
+
+<div id="chartdiv"></div>
+<pre id="coords"></pre>
+
+<script>
+/* Create map instance */
+var chart = am4core.create("chartdiv", am4maps.MapChart);
+var coords = document.getElementById('coords');
+chart.geodata = am4geodata_worldLow;
+chart.projection = new am4maps.projections.Miller();
+
+var polygonSeries = chart.series.push(new am4maps.MapPolygonSeries());
+polygonSeries.useGeodata = true;
+
+chart.zoomControl = new am4maps.ZoomControl();
+
+chart.seriesContainer.events.on("hit", function(ev) {
+    let point = chart.svgPointToGeo(ev.svgPoint);
+  console.log(point);
+  coords.innerText = JSON.stringify(point, null, 4);
+
+  imageSeries.data = [{
+      latitude : point.latitude,
+      longitude: point.longitude
+  }]
+  console.log(imageSeries.data)
+});
+
+// Create image series
+var imageSeries = chart.series.push(new am4maps.MapImageSeries());
+// Create a circle image in image series template so it gets replicated to all new images
+var imageSeriesTemplate = imageSeries.mapImages.template;
+var circle = imageSeriesTemplate.createChild(am4core.Circle);
+circle.radius = 4;
+circle.fill = am4core.color("#B27799");
+circle.stroke = am4core.color("#FFFFFF");
+circle.strokeWidth = 2;
+circle.nonScaling = true;
+circle.tooltipText = `lat: [bold]{latitude}[/]
+long: [bold]{longitude}[/]`;
+
+// Set property fields
+imageSeriesTemplate.propertyFields.latitude = "latitude";
+imageSeriesTemplate.propertyFields.longitude = "longitude";
+
+</script>
+
+    </body>
+</html>
