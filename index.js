@@ -22,6 +22,10 @@ app.get("/", (req, res) => {
     res.sendFile("./docs/index.html", { root: __dirname });
 });
 
+app.get("/geo", (req, res) => {
+    res.sendFile("./tools/geo.html", { root: __dirname });
+});
+
 // Data API
 app.get(sharedConfig.dataURI, (req, res) => {
     getEsriDataV2(res);
