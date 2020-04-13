@@ -64,7 +64,7 @@ define([
         let dth = rateChart.data.datasets[1].data;
         let cfr = getCFR(cnf, dth);
 
-        let title = `Spread in <span>${selectedCountry}</span> <i>( CFR: ${cfr}%)</i>`;
+        let title = `Spread in <span>${selectedCountry}</span> => CFR: <i>${cfr}%</i>`;
         view.popup.title = title;
         if (!view.popup.visible) {
             view.popup.location = hit.mapPoint;

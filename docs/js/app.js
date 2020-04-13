@@ -210,7 +210,7 @@ require([
 
                         const html = `<div>
                             ${statsFields[name]} : 
-                            <b><span> 
+                            <b><span ${name == 'Sum_deaths' ? "class='cfr'" : ""}> 
                             ${util.numberWithCommas(
                                 attributes[name].toFixed(0)
                             )}

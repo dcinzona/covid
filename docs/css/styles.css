@@ -45,6 +45,14 @@ body {
     font-size: 12pt;
     font-weight: bolder;
 }
+#statsDiv span.cfr,
+.esri-popup__header-title span.cfr,
+.esri-popup__header-title i {
+    color: #da0000;
+}
+.esri-popup__header-title i {
+    font-weight: normal;
+}
 
 #sliderContainer {
     flex: 0 0 80px;
