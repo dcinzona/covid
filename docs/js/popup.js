@@ -1,8 +1,8 @@
 define([
     "esri/core/promiseUtils",
     "esri/popup/content",
-    "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"
-], function(promiseUtils, content, Chart) {
+    "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js",
+], function (promiseUtils, content, Chart) {
     let layerview, view, layer, selectedCountry, chartWrapper, setDate;
 
     function init(lv, v, l, s) {
@@ -24,15 +24,15 @@ define([
             breakpoint: false,
             buttonEnabled: false,
             position: "bottom-right",
-            content: chartWrapper
+            content: chartWrapper,
         };
         view.popup.featureNavigationEnabled = false;
         /* */
     }
 
-    var hitTest = promiseUtils.debounce(function(event) {
-        return view.hitTest(event).then(function(hit) {
-            var results = hit.results.filter(function(result) {
+    var hitTest = promiseUtils.debounce(function (event) {
+        return view.hitTest(event).then(function (hit) {
+            var results = hit.results.filter(function (result) {
                 return result.graphic.layer === layer;
             });
 
@@ -43,7 +43,7 @@ define([
             return {
                 graphic: results[0].graphic,
                 screenPoint: hit.screenPoint,
-                mapPoint: results[0].mapPoint
+                mapPoint: results[0].mapPoint,
             };
         });
     });
@@ -59,7 +59,12 @@ define([
     function show(features, hit) {
         /* */
         updateChart(rateChart, features);
-        let title = `Spread in <span>${selectedCountry}</span>`;
+        console.log(rateChart.data);
+        let cnf = rateChart.data.datasets[0].data;
+        let dth = rateChart.data.datasets[1].data;
+        let cfr = getCFR(cnf, dth);
+
+        let title = `Spread in <span>${selectedCountry}</span> <i>( CFR: ${cfr}%)</i>`;
         view.popup.title = title;
         if (!view.popup.visible) {
             view.popup.location = hit.mapPoint;
@@ -70,6 +75,14 @@ define([
         }
 
         /* */
+    }
+
+    Array.prototype.max = function () {
+        return Math.max.apply(null, this);
+    };
+
+    function getCFR(confArr, deathArr) {
+        return ((deathArr.max() / confArr.max()) * 100).toFixed(2);
     }
 
     function getStatQuery() {
@@ -115,9 +128,9 @@ define([
     }
 
     function updateChart(chart, features) {
-        rateChart.data.labels = features.map(e => e.attributes.dateString);
+        rateChart.data.labels = features.map((e) => e.attributes.dateString);
         rateChart.data.datasets[0].data = features.map(
-            e => e.attributes.sum_confirmed
+            (e) => e.attributes.sum_confirmed
         );
         rateChart.data.datasets[1].data = features.map(
             (e) => e.attributes.sum_deaths
@@ -143,17 +156,21 @@ define([
                         borderWidth: 1,
                         lineTension: 0.1,
                         data: [],
+                        pointRadius: 0,
+                        pointHitRadius: 3,
                     },
                     {
                         label: `Deaths`,
                         showLine: true,
-                        fill: false,
+                        fill: true,
                         spanGaps: true,
                         borderColor: "#990000",
                         backgroundColor: "#990000",
                         borderWidth: 1,
                         lineTension: 0.1,
                         data: [],
+                        pointRadius: 0,
+                        pointHitRadius: 3,
                     },
                 ],
             },
@@ -166,9 +183,10 @@ define([
                 },
                 onClick: function (e) {
                     var firstPoint = rateChart.getElementAtEvent(e)[0];
-
                     if (firstPoint) {
-                        var label = rateChart.data.labels[firstPoint._index];
+                        var label = `${
+                            rateChart.data.labels[firstPoint._index]
+                        }`;
                         if (setDate) {
                             setDate(new Date(label).getTime());
                         }
@@ -207,9 +225,9 @@ define([
         });
         //view.popup.content = document.getElementById("rateChart");
     }
-    let runQuery = function(event) {
+    let runQuery = function (event) {
         //event.stopPropagation();
-        hitTest(event).then(function(hit) {
+        hitTest(event).then(function (hit) {
             //exit if miss
             if (!hit) {
                 //hide(); //commenting out to leave stats up when deselecting
@@ -221,7 +239,7 @@ define([
             if (selectedCountry) {
                 const queryParams = getStatQuery();
                 queryParams.where = " country = '" + selectedCountry + "'";
-                layer.queryFeatures(queryParams).then(function(results) {
+                layer.queryFeatures(queryParams).then(function (results) {
                     let sorted = results.features.sort(sorter);
                     show(sorted, hit);
                 });
