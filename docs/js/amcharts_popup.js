@@ -38,39 +38,53 @@ define([
         am4core.useTheme(am4themes_animated);
         // Themes end
         // Create chart
-        //var container = am4core.create("chartWrapper", am4core.Container);
-        //container.width = am4core.percent(100);
-        //container.height = am4core.percent(100);
         am4core.options.onlyShowOnViewport = true;
         rateChart = am4core.create("rateChart", am4charts.XYChart);
         rateChart.responsive.enabled = true;
+        rateChart.numberFormatter.numberFormat = "#,##a";
 
         var dateAxis = rateChart.xAxes.push(new am4charts.DateAxis());
         dateAxis.renderer.grid.template.location = 0;
         dateAxis.skipEmptyPeriods = true;
-        dateAxis.groupData = true;
-        dateAxis.renderer.labels.template.fill = am4core.color("#dfcc64");
+        dateAxis.dateFormats.setKey("day", "MMM d");
+        dateAxis.baseInterval = {
+            "timeUnit": "day",
+            "count": 1
+        };
+        dateAxis.gridIntervals.setAll([
+            { timeUnit: "day", count: 1 },
+            { timeUnit: "day", count: 3 },
+            { timeUnit: "day", count: 5 },
+            { timeUnit: "week", count: 1 },
+            { timeUnit: "month", count: 1 }
+        ]);
+        dateAxis.renderer.minGridDistance = 45;
+        // Setting up label rotation
+        //dateAxis.renderer.labels.template.rotation = 90;
 
         var valueAxis = rateChart.yAxes.push(new am4charts.ValueAxis());
         valueAxis.tooltip.disabled = true;
         valueAxis.renderer.labels.template.fill = am4core.color("#dfcc64");
+        //valueAxis.logarithmic = true;
         //valueAxis.renderer.minWidth = 60;
 
         var valueAxis2 = rateChart.yAxes.push(new am4charts.ValueAxis());
         valueAxis2.tooltip.disabled = true;
         valueAxis2.renderer.labels.template.fill = am4core.color("#e59165");
         valueAxis2.renderer.opposite = true;
-        //valueAxis2.renderer.minWidth = 60;
         valueAxis2.syncWithAxis = valueAxis;
 
-        var series = rateChart.series.push(new am4charts.LineSeries());
-        series.name = "Cases";
-        series.dataFields.dateX = "date";
-        series.dataFields.valueY = "confirmed";
-        series.tooltipText = "{valueY.value}";
-        series.fill = am4core.color("#dfcc64");
-        series.stroke = am4core.color("#dfcc64");
-        //series.strokeWidth = 3;
+        var series1 = rateChart.series.push(new am4charts.LineSeries());
+        series1.name = "Cases";
+        series1.dataFields.dateX = "date";
+        series1.dataFields.valueY = "confirmed";
+        series1.tooltipText = "Cases: {valueY.value}";
+        series1.fill = am4core.color("#dfcc64");
+        series1.stroke = am4core.color("#dfcc64");
+        series1.strokeWidth = 2;
+        series1.legendSettings.labelText = "[bold {color}]{name}[/]";
+        series1.legendSettings.valueText = "{valueY.deaths}";
+        series1.legendSettings.itemValueText = "[bold]{valueY}[/bold]";
 
         var series2 = rateChart.series.push(new am4charts.LineSeries());
         series2.name = "Deaths";
@@ -78,24 +92,31 @@ define([
         series2.dataFields.valueY = "deaths";
         series2.yAxis = valueAxis2;
         series2.xAxis = dateAxis;
-        series2.tooltipText = "{valueY.value}";
+        series2.tooltipText = "Deaths {valueY.value}";
         series2.fill = am4core.color("#e59165");
         series2.stroke = am4core.color("#e59165");
-        //series2.strokeWidth = 3;
+        series2.strokeWidth = 2;
+        series2.legendSettings.labelText = "[bold {color}]{name}[/]";
+        series2.legendSettings.valueText = "{valueY.deaths}";
+        series2.legendSettings.itemValueText = "[bold]{valueY}[/bold]";
 
-        series.events.on("hidden", toggleAxes);
-        series.events.on("shown", toggleAxes);
-        series2.events.on("hidden", toggleAxes);
-        series2.events.on("shown", toggleAxes);
+        //series.events.on("hidden", toggleAxes);
+        //series.events.on("shown", toggleAxes);
+        //series2.events.on("hidden", toggleAxes);
+        //series2.events.on("shown", toggleAxes);
 
         rateChart.cursor = new am4charts.XYCursor();
         rateChart.cursor.xAxis = dateAxis;
 
         rateChart.scrollbarX = new am4core.Scrollbar();
 
+        //rateChart.legend = new am4charts.Legend();
+        //rateChart.legend.parent = rateChart.plotContainer;
+        //rateChart.legend.zIndex = 100;
+        /* Add legend */
         rateChart.legend = new am4charts.Legend();
-        rateChart.legend.parent = rateChart.plotContainer;
-        rateChart.legend.zIndex = 100;
+        rateChart.legend.markers.template.disabled = true;
+        rateChart.legend.labels.template.text = "[bold {color}]{name}[/]";
 
         valueAxis2.renderer.grid.template.strokeOpacity = 0.07;
         dateAxis.renderer.grid.template.strokeOpacity = 0.07;
@@ -124,7 +145,7 @@ define([
             return conf;
         })
         rateChart.data = data;
-        //rateChart.data.datasets[0].label = `${selectedCountry} (Total Cases)`;
+
     }
 
 
@@ -145,15 +166,6 @@ define([
             };
         });
     });
-
-    function hide() {
-        if (view.popup.visible) {
-            rateChart.dispose();
-            view.popup.close();
-            chartWrapper.classList.remove("visible");
-            console.log("hiding");
-        }
-    }
 
     function show(features, hit) {
         /* */
@@ -240,12 +252,11 @@ define([
             if (selectedCountry) {
                 const queryParams = getStatQuery();
                 queryParams.where = " country = '" + selectedCountry + "'";
+                let todayString = new Date().toISOString().split('T')[0];
                 layer.queryFeatures(queryParams).then(function (results) {
-                    let sorted = results.features.sort(sorter);
+                    let sorted = results.features.filter(x => x.attributes.dateString != todayString).sort(sorter);
                     show(sorted, hit);
                 });
-            } else {
-                hide();
             }
         });
     };
