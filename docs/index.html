@@ -5,24 +5,33 @@
             name="viewport"
             content="initial-scale=1,maximum-scale=1,user-scalable=no"
         />
-        
-        <!-- Global site tag (gtag.js) - Google Analytics -->
-        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-38355860-1"></script>
-        <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
 
-        gtag('config', 'UA-38355860-1');
+        <!-- Global site tag (gtag.js) - Google Analytics -->
+        <script
+            async
+            src="https://www.googletagmanager.com/gtag/js?id=UA-38355860-1"
+        ></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+            gtag("js", new Date());
+
+            gtag("config", "UA-38355860-1");
         </script>
 
         <title>COVID-19 Over Time</title>
         <link rel="shortcut icon" href="/favicon.png" />
+        <script src="//www.amcharts.com/lib/4/core.js"></script>
+        <script src="//www.amcharts.com/lib/4/charts.js"></script>
+        <script src="//www.amcharts.com/lib/4/themes/dark.js"></script>
+        <script src="//www.amcharts.com/lib/4/themes/animated.js"></script>
         <link
             rel="stylesheet"
-            href="https://js.arcgis.com/4.14/esri/themes/dark/main.css"
+            href="https://js.arcgis.com/4.15/esri/themes/dark/main.css"
         />
-        <script src="https://js.arcgis.com/4.14/"></script>
+        <script src="https://js.arcgis.com/4.15/"></script>
         <script src="js/app.js"></script>
 
         <link rel="stylesheet" href="css/styles.css" />
@@ -61,7 +70,7 @@
                 </div>
             </div>
             <div id="chartWrapper" class="esri-widget">
-                <canvas id="rateChart"></canvas>
+                <div id="rateChart"></div>
             </div>
         </div>
     </body>

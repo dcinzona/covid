@@ -95,7 +95,7 @@ body {
     margin: 20px 0;
 }
 
-#playButton.disabled{
+#playButton.disabled {
     cursor: wait;
 }
 
@@ -113,9 +113,9 @@ body {
     font-size: 40px;
 }
 
-.toggle-button.disabled .toggle-button-icon  {
+.toggle-button.disabled .toggle-button-icon {
     color: gray;
-    opacity: .7;
+    opacity: 0.7;
 }
 
 .toggle-button > :nth-child(2) {
@@ -158,18 +158,24 @@ body {
 #chartWrapper {
     position: relative;
     display: none;
-    margin-top: 1em;
+    overflow: hidden;
 }
 #chartWrapper.visible {
     display: block;
 }
+#rateChart {
+    height: 300px;
+}
+/* */
 
-.esri-view-width-less-than-medium.esri-view-height-greater-than-xsmall .esri-popup {
+.esri-view-width-less-than-medium.esri-view-height-greater-than-xsmall
+    .esri-popup {
     width: 100%;
-    margin:0;
+    margin: 0;
 }
 
-.esri-view-width-less-than-medium.esri-view-height-greater-than-xsmall .esri-popup__main-container {
+.esri-view-width-less-than-medium.esri-view-height-greater-than-xsmall
+    .esri-popup__main-container {
     max-height: 500px;
     width: 100%;
 }

@@ -2,7 +2,7 @@ const gmt_domainRoot = `${window.location.protocol}//${
     window.location.hostname == "localhost"
         ? "localhost:3000"
         : window.location.hostname
-}`;
+    }`;
 
 require([
     "esri/request",
@@ -14,7 +14,7 @@ require([
     "esri/widgets/Legend",
     `${gmt_domainRoot}/js/util.js`,
     `${gmt_domainRoot}/js/tooltip.js`,
-    `${gmt_domainRoot}/js/popup.js`,
+    `${gmt_domainRoot}/js/amcharts_popup.js`,
     `${gmt_domainRoot}/js/renderer.js`,
     `${gmt_domainRoot}/js/mobile.js`,
 ], function (
@@ -69,8 +69,6 @@ require([
                     endDate = last.time;
                     slider.max = last.time;
                     slider.disabled = false;
-                    slider.labelsVisible = true;
-                    slider.rangeLabelsVisible = true;
                     setDate(endDate).then(function () {
                         slider.on("thumb-drag", inputHandler);
                         playButton.addEventListener("click", function () {
@@ -134,10 +132,13 @@ require([
         max: endDate,
         values: [startDate],
         step: 86400, //seconds in a day
-        rangeLabelsVisible: false,
         precision: 0,
-        labelsVisible: false,
         disabled: true,
+        snapOnClickEnabled: false,
+        visibleElements: {
+            labels: true,
+            rangeLabels: true
+        }
     });
 
     slider.labelFormatFunction = function (value, type) {
@@ -212,21 +213,21 @@ require([
                         const html = `<div>
                             ${statsFields[name]} : 
                             <b><span ${
-                                name == "Sum_deaths" ? "class='cfr'" : ""
+                            name == "Sum_deaths" ? "class='cfr'" : ""
                             }> 
                             ${util.numberWithCommas(
                                 attributes[name].toFixed(0)
                             )}
                             </span></b><i>
                             ${
-                                name == "Sum_deaths"
-                                    ? "(" +
-                                      (
-                                          (Sum_deaths / Sum_confirmed) *
-                                          100
-                                      ).toFixed(2) +
-                                      "%)"
-                                    : ""
+                            name == "Sum_deaths"
+                                ? "(" +
+                                (
+                                    (Sum_deaths / Sum_confirmed) *
+                                    100
+                                ).toFixed(2) +
+                                "%)"
+                                : ""
                             }</i>
                             </div>`;
                         htmls.push(html);
@@ -283,7 +284,7 @@ require([
         let speed =
             Math.round(
                 (new Date(endDate).getTime() - new Date(startDate).getTime()) /
-                    (3600000 * 24)
+                (3600000 * 24)
             ) * 2.5;
 
         var frame = function (timestamp) {
