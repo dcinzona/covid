@@ -41,7 +41,7 @@ define([
         am4core.options.onlyShowOnViewport = true;
         rateChart = am4core.create("rateChart", am4charts.XYChart);
         rateChart.responsive.enabled = true;
-        rateChart.numberFormatter.numberFormat = "#,##a";
+        rateChart.numberFormatter.numberFormat = "#.#a";
 
         var dateAxis = rateChart.xAxes.push(new am4charts.DateAxis());
         dateAxis.renderer.grid.template.location = 0;
@@ -49,18 +49,20 @@ define([
         dateAxis.dateFormats.setKey("day", "MMM d");
         dateAxis.baseInterval = {
             "timeUnit": "day",
-            "count": 1
+            "count": 3
         };
         dateAxis.gridIntervals.setAll([
             { timeUnit: "day", count: 1 },
             { timeUnit: "day", count: 3 },
             { timeUnit: "day", count: 5 },
+            { timeUnit: "day", count: 10 },
             { timeUnit: "week", count: 1 },
+            { timeUnit: "week", count: 2 },
             { timeUnit: "month", count: 1 }
         ]);
         dateAxis.renderer.grid.template.location = 0.5;
         dateAxis.renderer.minGridDistance = 50;
-        dateAxis.startLocation = 0.5;
+        dateAxis.startLocation = 0;
         dateAxis.endLocation = -0.5;
         // Setting up label rotation
         //dateAxis.renderer.labels.template.rotation = 90;
@@ -76,32 +78,40 @@ define([
         valueAxis2.renderer.labels.template.fill = am4core.color("#e59165");
         valueAxis2.renderer.opposite = true;
         //valueAxis2.syncWithAxis = valueAxis;
+        valueAxis2.disabled = true;
 
         var series1 = rateChart.series.push(new am4charts.LineSeries());
         series1.name = "Cases";
         series1.dataFields.dateX = "date";
         series1.dataFields.valueY = "confirmed";
-        series1.tooltipText = "Cases: {valueY.value}";
+        series1.tooltipText = "Cases: {valueY.value}\nDelta: {valueY.previousChange.formatNumber('+#.#a|-#.#a')}";
         series1.fill = am4core.color("#dfcc64");
         series1.stroke = am4core.color("#dfcc64");
         series1.strokeWidth = 2;
-        series1.legendSettings.labelText = "[bold {color}]{name}[/]";
-        series1.legendSettings.valueText = "{valueY.deaths}";
-        series1.legendSettings.itemValueText = "[bold]{valueY}[/bold]";
+        //series1.legendSettings.labelText = "[bold {color}]{name}[/]";
+        series1.legendSettings.valueText = "{valueY.confirmed}";
+        series1.legendSettings.itemValueText = "[bold]{valueY.value}[/bold]";
+        series1.showOnInit = false;
+        //var reg = series1.plugins.push(new am4plugins_regression.Regression());
+        //reg.method = "polynomial";
 
         var series2 = rateChart.series.push(new am4charts.LineSeries());
         series2.name = "Deaths";
         series2.dataFields.dateX = "date";
         series2.dataFields.valueY = "deaths";
-        series2.yAxis = valueAxis2;
+        series2.dataFields.customValue = 'cfr';
+        series2.yAxis = valueAxis;
         series2.xAxis = dateAxis;
-        series2.tooltipText = "Deaths {valueY.value}";
+        series2.tooltipText = `Deaths {valueY.value}
+                               Delta: {valueY.previousChange.formatNumber('+#.#a|-#.#a')}
+                               CFR: {customValue}%`;
         series2.fill = am4core.color("#e59165");
         series2.stroke = am4core.color("#e59165");
         series2.strokeWidth = 2;
-        series2.legendSettings.labelText = "[bold {color}]{name}[/]";
+        //series2.legendSettings.labelText = "[bold {color}]{name}[/]";
         series2.legendSettings.valueText = "{valueY.deaths}";
-        series2.legendSettings.itemValueText = "[bold]{valueY}[/bold]";
+        series2.legendSettings.itemValueText = "[bold]{valueY.value}[/bold]";
+        series2.showOnInit = false;
 
         //series.events.on("hidden", toggleAxes);
         //series.events.on("shown", toggleAxes);
@@ -156,7 +166,7 @@ define([
         });
         /* */
         //#endregion
-        rateChart.padding(0, 0, 0, 0);
+        rateChart.padding(0, 20, 0, 0);
         rateChart.scrollbarX.properties.marginBottom = 20;
         rateChart.scrollbarX.properties.paddingTop = 0;
         rateChart.legend.properties.paddingTop = -10
@@ -180,7 +190,8 @@ define([
             let conf = {
                 'date': e.attributes.dateString,
                 'confirmed': e.attributes.sum_confirmed,
-                'deaths': e.attributes.sum_deaths
+                'deaths': e.attributes.sum_deaths,
+                'cfr': parseFloat(getCFR([e.attributes.sum_confirmed], [e.attributes.sum_deaths]))
             }
             return conf;
         })
@@ -294,7 +305,9 @@ define([
                 queryParams.where = " country = '" + selectedCountry + "'";
                 let todayString = new Date().toISOString().split('T')[0];
                 layer.queryFeatures(queryParams).then(function (results) {
-                    let sorted = results.features.filter(x => x.attributes.dateString != todayString).sort(sorter);
+                    let sorted = results.features
+                        .filter(x => x.attributes.dateString != todayString)
+                        .sort(sorter);
                     show(sorted, hit);
                 });
             }
