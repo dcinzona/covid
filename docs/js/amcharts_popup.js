@@ -58,7 +58,10 @@ define([
             { timeUnit: "week", count: 1 },
             { timeUnit: "month", count: 1 }
         ]);
-        dateAxis.renderer.minGridDistance = 45;
+        dateAxis.renderer.grid.template.location = 0.5;
+        dateAxis.renderer.minGridDistance = 50;
+        dateAxis.startLocation = 0.5;
+        dateAxis.endLocation = -0.5;
         // Setting up label rotation
         //dateAxis.renderer.labels.template.rotation = 90;
 
@@ -72,7 +75,7 @@ define([
         valueAxis2.tooltip.disabled = true;
         valueAxis2.renderer.labels.template.fill = am4core.color("#e59165");
         valueAxis2.renderer.opposite = true;
-        valueAxis2.syncWithAxis = valueAxis;
+        //valueAxis2.syncWithAxis = valueAxis;
 
         var series1 = rateChart.series.push(new am4charts.LineSeries());
         series1.name = "Cases";
@@ -121,7 +124,44 @@ define([
         valueAxis2.renderer.grid.template.strokeOpacity = 0.07;
         dateAxis.renderer.grid.template.strokeOpacity = 0.07;
         valueAxis.renderer.grid.template.strokeOpacity = 0.07;
+        /**
+         * ========================================================
+         * Enabling responsive features
+         * ========================================================
+         */
 
+        rateChart.responsive.useDefault = false
+        rateChart.responsive.enabled = true;
+        //#region state responsive
+        /* *
+        rateChart.responsive.rules.push({
+            relevant: function (target) {
+                if (target.pixelWidth <= 500) {
+                    return true;
+                }
+
+                return false;
+            },
+            state: function (target, stateId) {
+                if (target instanceof am4charts.Chart) {
+                    var state = target.states.create(stateId);
+                    state.properties.paddingTop = 0;
+                    state.properties.paddingRight = 0;
+                    state.properties.paddingBottom = 0;
+                    state.properties.paddingLeft = 0;
+                    return state;
+                }
+                return null;
+            }
+        });
+        /* */
+        //#endregion
+        rateChart.padding(0, 0, 0, 0);
+        rateChart.scrollbarX.properties.marginBottom = 20;
+        rateChart.scrollbarX.properties.paddingTop = 0;
+        rateChart.legend.properties.paddingTop = -10
+        rateChart.legend.properties.marginBottom = 10;
+        rateChart.tapToActivate = true;
     }
 
     function toggleAxes(ev) {

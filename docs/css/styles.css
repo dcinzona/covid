@@ -45,11 +45,13 @@ body {
     font-size: 12pt;
     font-weight: bolder;
 }
+
 #statsDiv span.cfr,
 .esri-popup__header-title span.cfr,
 .esri-popup__header-title i {
     color: #da0000;
 }
+
 .esri-popup__header-title i {
     font-weight: normal;
 }
@@ -63,6 +65,7 @@ body {
 
     padding: 0 12px;
 }
+
 #sliderInnerContainer {
     flex: 1 1 auto;
     order: 2;
@@ -77,13 +80,16 @@ body {
     width: 100%;
     height: 60px;
 }
-#slider > div + div {
+
+#slider>div+div {
     margin-left: 20px;
 }
+
 .esri-slider--horizontal .esri-slider__max,
 .esri-slider--horizontal .esri-slider__min {
     width: auto;
 }
+
 /**
     * Play/Stop toggle button
     */
@@ -118,21 +124,16 @@ body {
     opacity: 0.7;
 }
 
-.toggle-button > :nth-child(2) {
+.toggle-button> :nth-child(2) {
     display: none;
 }
 
-.toggle-button.toggled > :nth-child(1) {
+.toggle-button.toggled> :nth-child(1) {
     display: none;
 }
 
-.toggle-button.toggled > :nth-child(2) {
+.toggle-button.toggled> :nth-child(2) {
     display: block;
-}
-
-#histogram {
-    width: 350px;
-    height: 250px;
 }
 
 .tooltip {
@@ -141,7 +142,7 @@ body {
     transition: opacity 200ms;
 }
 
-.tooltip > div {
+.tooltip>div {
     margin: 0 auto;
     padding: 12px;
     border-radius: 4px;
@@ -152,30 +153,41 @@ body {
 .esri-view .esri-view-surface--inset-outline:focus::after {
     outline: none;
 }
+
 .esri-view-width-less-than-small .esri-zoom .esri-widget--button {
     display: none;
 }
+
 #chartWrapper {
     position: relative;
     display: none;
     overflow: hidden;
 }
+
 #chartWrapper.visible {
     display: block;
 }
+
 #rateChart {
     height: 300px;
 }
-/* */
 
-.esri-view-width-less-than-medium.esri-view-height-greater-than-xsmall
-    .esri-popup {
+.esri-view-width-xlarge .esri-popup__main-container {
+    min-width: 460px;
+    max-width: 100vw;
+    width: 40vw;
+}
+
+.esri-view-width-less-than-medium.esri-view-height-greater-than-xsmall .esri-popup {
     width: 100%;
     margin: 0;
 }
 
-.esri-view-width-less-than-medium.esri-view-height-greater-than-xsmall
-    .esri-popup__main-container {
+.esri-view-width-less-than-medium.esri-view-height-greater-than-xsmall .esri-popup__main-container {
     max-height: 500px;
     width: 100%;
+}
+
+.esri-popup.esri-popup--is-docked .esri-popup__content {
+    margin: 0;
 }
