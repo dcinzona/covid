@@ -82,8 +82,8 @@ define([
         dateAxis.renderer.grid.template.location = 0.5;
         dateAxis.renderer.minGridDistance = 50;
         dateAxis.startLocation = 0;
-        dateAxis.endLocation = -0.5;
-        dateAxis.groupData = true;
+        dateAxis.endLocation = 0.5;
+        //dateAxis.groupData = true;
         dateAxis.tooltip.label.fontSize = "0.8em";
         // Setting up label rotation
         //dateAxis.renderer.labels.template.rotation = 90;
@@ -119,30 +119,6 @@ define([
 
         rateChart.responsive.useDefault = false
         rateChart.responsive.enabled = true;
-        //#region state responsive
-        /* *
-        rateChart.responsive.rules.push({
-            relevant: function (target) {
-                if (target.pixelWidth <= 500) {
-                    return true;
-                }
-
-                return false;
-            },
-            state: function (target, stateId) {
-                if (target instanceof am4charts.Chart) {
-                    var state = target.states.create(stateId);
-                    state.properties.paddingTop = 0;
-                    state.properties.paddingRight = 0;
-                    state.properties.paddingBottom = 0;
-                    state.properties.paddingLeft = 0;
-                    return state;
-                }
-                return null;
-            }
-        });
-        /* */
-        //#endregion
         rateChart.padding(0, 0, 0, 20);
         rateChart.scrollbarX.properties.marginBottom = 20;
         rateChart.scrollbarX.properties.paddingTop = 0;
