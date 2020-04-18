@@ -83,7 +83,7 @@ define([
         dateAxis.renderer.minGridDistance = 50;
         dateAxis.startLocation = 0;
         dateAxis.endLocation = 0.5;
-        //dateAxis.groupData = true;
+        dateAxis.groupData = true;
         dateAxis.tooltip.label.fontSize = "0.8em";
         // Setting up label rotation
         //dateAxis.renderer.labels.template.rotation = 90;
