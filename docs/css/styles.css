@@ -81,7 +81,7 @@ body {
     height: 60px;
 }
 
-#slider>div+div {
+#slider > div + div {
     margin-left: 20px;
 }
 
@@ -124,15 +124,15 @@ body {
     opacity: 0.7;
 }
 
-.toggle-button> :nth-child(2) {
+.toggle-button > :nth-child(2) {
     display: none;
 }
 
-.toggle-button.toggled> :nth-child(1) {
+.toggle-button.toggled > :nth-child(1) {
     display: none;
 }
 
-.toggle-button.toggled> :nth-child(2) {
+.toggle-button.toggled > :nth-child(2) {
     display: block;
 }
 
@@ -142,7 +142,7 @@ body {
     transition: opacity 200ms;
 }
 
-.tooltip>div {
+.tooltip > div {
     margin: 0 auto;
     padding: 12px;
     border-radius: 4px;
@@ -178,16 +178,21 @@ body {
     width: 40vw;
 }
 
-.esri-view-width-less-than-medium.esri-view-height-greater-than-xsmall .esri-popup {
+.esri-view-width-less-than-medium.esri-view-height-greater-than-xsmall
+    .esri-popup {
     width: 100%;
     margin: 0;
 }
 
-.esri-view-width-less-than-medium.esri-view-height-greater-than-xsmall .esri-popup__main-container {
+.esri-view-width-less-than-medium.esri-view-height-greater-than-xsmall
+    .esri-popup__main-container {
     max-height: 500px;
     width: 100%;
 }
 
 .esri-popup.esri-popup--is-docked .esri-popup__content {
-    margin: 0;
+    margin: 0 0 0 10;
+}
+:focus {
+    outline: none;
 }
