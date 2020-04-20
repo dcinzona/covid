@@ -140,13 +140,16 @@ define([
         series.tooltipText = tooltipText || `[bold]Cases ([bold ${series.stroke.hex}]{country}[/][bold]): [/]
         ● Total: [bold]{valueY.value}[/]
         ● Delta: [bold]{valueY.previousChange.formatNumber('+#.#a|-#.#a')}[/]
-        ● ROC: [bold]{dummyData.confirmed.ROCStr}[/]`;
+        ● ROC: [bold]{dummyData.confirmed.ROCStr}[/]
+        ● Deaths: [bold #ffb0b0]{dummyData.deaths.count}[/]`;
         series.strokeWidth = 2;
         series.legendSettings.valueText = "{valueY.confirmed}";
         series.legendSettings.itemValueText = "[bold]{valueY.value.formatNumber('#,###')}[/]";
         series.showOnInit = false;
         series.tooltip.getFillFromObject = false;
         series.tooltip.background.fill = am4core.color('rgba(50, 50, 50, 0.7)');
+        series.tooltip.background.stroke = series.stroke.hex;
+        series.tooltip.background.strokeOpacity = 0.5;
         series.tooltip.fontSize = "0.8em";
         series.fillOpacity = 0.2;
         return series;
