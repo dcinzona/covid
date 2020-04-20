@@ -57,7 +57,7 @@ define([
         // Themes end
         // Create chart
         am4core.options.onlyShowOnViewport = true;
-        rateChart = am4core.create("rateChart", am4charts.XYChart);
+        rateChart = am4core.create("rateChart", am4charts.XYChart3D);
         rateChart.responsive.enabled = true;
         rateChart.numberFormatter.numberFormat = "#.#a";
         rateChart.colors.step = 2
@@ -119,7 +119,6 @@ define([
 
         rateChart.responsive.useDefault = false
         rateChart.responsive.enabled = true;
-        rateChart.padding(0, 0, 0, 20);
         rateChart.scrollbarX.properties.marginBottom = 20;
         rateChart.scrollbarX.properties.paddingTop = 0;
         rateChart.legend.properties.paddingTop = -10
@@ -131,7 +130,6 @@ define([
 
         chart = rateChart;
         var series = chart.series.push(new am4charts.LineSeries());
-        //chart.series.push(series);
         series.name = name;
         series.dataFields.dateX = "date";
         series.dataFields.valueY = valueField;
@@ -241,6 +239,27 @@ define([
         }
         updateTitle();
         /* */
+    }
+
+    function setDimensions() {
+        let chart = rateChart;
+        /* placement */
+        let count = chart.series.length;
+        chart.depth = 50 * (rateChart.series.length - 1);
+        chart.series.each((series, idx) => {
+            series.dx = chart.depth / (count) * am4core.math.cos(chart.angle) * idx;
+            series.dy = -chart.depth / (count) * am4core.math.sin(chart.angle) * idx;
+        });
+        let opp = false
+        if (count == 1) {
+            opp = true;
+            chart.padding(0, 0, 0, 20);
+        } else {
+            chart.padding(0, 20, 0, 0);
+        }
+        chart.yAxes.each(aY => {
+            aY.renderer.opposite = opp;
+        })
     }
 
     Array.prototype.max = function () {
@@ -374,6 +393,7 @@ define([
         }
 
         view.popup.title = title;
+        setDimensions();
     }
 
     return {
