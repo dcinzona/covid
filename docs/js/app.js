@@ -1,7 +1,7 @@
 const gmt_domainRoot = `${window.location.protocol}//${
     window.location.hostname == "localhost"
         ? "localhost:3000"
-        : window.location.hostname
+        : window.location.hostname + ':' + window.location.port
     }`;
 
 require([
