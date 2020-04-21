@@ -23,11 +23,10 @@
 
         <title>COVID-19 Over Time</title>
         <link rel="shortcut icon" href="/favicon.png" />
-        <script src="//www.amcharts.com/lib/4/core.js"></script>
-        <script src="//www.amcharts.com/lib/4/charts.js"></script>
-        <script src="//www.amcharts.com/lib/4/themes/dark.js"></script>
-        <script src="//www.amcharts.com/lib/4/themes/animated.js"></script>
-        <script src="//www.amcharts.com/lib/4/plugins/regression.js"></script>
+        <script src="/vendor/amcharts4/core.js"></script>
+        <script src="/vendor/amcharts4/charts.js"></script>
+        <script src="/vendor/amcharts4/themes/dark.js"></script>
+        <script src="/vendor/amcharts4/themes/animated.js"></script>
         <link
             rel="stylesheet"
             href="https://js.arcgis.com/4.15/esri/themes/dark/main.css"
@@ -44,8 +43,6 @@
             <div id="titleDiv" class="esri-widget">
                 <div><b>COVID-19 Spread Over Time</b></div>
                 <div id="updateNote"></div>
-
-                <br />
                 <div id="statsDiv" class="esri-widget"></div>
             </div>
             <div id="sliderContainer" class="esri-widget">
@@ -70,7 +67,25 @@
                     <div id="slider"></div>
                 </div>
             </div>
-            <div id="chartWrapper" class="esri-widget">
+            <div id="chartWrapper" class="chartWrapper">
+                <div class="chartHeader">
+                    <h2 class="chartTitle"></h2>
+                    <div class="esri-popup__header-buttons">
+                        <div
+                            role="button"
+                            tabindex="0"
+                            class="esri-popup__button"
+                            aria-label="Close"
+                            title="Close"
+                            id="closeChart"
+                        >
+                            <span
+                                aria-hidden="true"
+                                class="esri-popup__icon esri-icon-close"
+                            ></span>
+                        </div>
+                    </div>
+                </div>
                 <div id="rateChart"></div>
             </div>
         </div>
