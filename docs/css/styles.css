@@ -38,9 +38,12 @@ body {
     font-style: italic;
     opacity: 0.8;
 }
-
+#statsDiv {
+    padding-top: 1rem;
+}
 #statsDiv span,
-.esri-popup__header-title span {
+.esri-popup__header-title span,
+.chartTitle span {
     color: #f9c653;
     font-size: 12pt;
     font-weight: bolder;
@@ -48,11 +51,13 @@ body {
 
 #statsDiv span.cfr,
 .esri-popup__header-title span.cfr,
-.esri-popup__header-title i {
+.esri-popup__header-title i,
+.chartTitle i {
     color: #da0000;
 }
 
-.esri-popup__header-title i {
+.esri-popup__header-title i,
+.chartTitle i {
     font-weight: normal;
 }
 
@@ -159,17 +164,85 @@ body {
 }
 
 #chartWrapper {
-    position: relative;
+    position: absolute;
     display: none;
     overflow: hidden;
+    box-sizing: border-box;
+    color: #d1d1d1;
+    font-size: 14px;
+    font-family: "Avenir Next W00", "Helvetica Neue", Helvetica, Arial,
+        sans-serif;
+    line-height: 1.3em;
+    background-color: #242424;
+    order: 1;
 }
 
-#chartWrapper.visible {
+#applicationDiv.chartVisible #chartWrapper {
     display: block;
+    position: absolute;
+    right: 1rem;
+    bottom: calc(80px + 1rem);
+    box-shadow: 2px 2px 5px 3px rgba(0, 0, 0, 0.1);
+    width: 40vw;
+}
+
+#chartWrapper .chartHeader {
+    display: flex;
+}
+
+#chartWrapper .chartTitle {
+    flex: 1;
+    border-radius: 2px;
+    font-size: 14px;
+    padding: 6px 7px;
+    margin: 6px auto 6px 7px;
+    display: block;
+    transition: background-color 125ms ease-in-out;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 
 #rateChart {
+    padding: 0 5px 5px 10px;
     height: 350px;
+}
+@media screen and (max-width: 400px) {
+    #applicationDiv.chartVisible #chartWrapper {
+        position: relative;
+        bottom: 0;
+        right: 0;
+        margin: 0;
+        min-width: 100vw;
+        width: 100vw;
+        order: 1;
+        overflow: visible;
+        box-shadow: none;
+        border-bottom: solid 1px black;
+    }
+    #applicationDiv.chartVisible #titleDiv br,
+    #applicationDiv.chartVisible #statsDiv {
+        display: none;
+    }
+}
+@media screen and (max-height: 375px) {
+    #applicationDiv.chartVisible #chartWrapper {
+        right: 0;
+        margin: 0;
+        overflow: visible;
+        box-shadow: none;
+        height: calc(100vh - 80px);
+        top: 0;
+        bottom: initial;
+        width: 50vw;
+        border-bottom: solid 1px black;
+    }
+    #rateChart {
+        height: calc(80vh - 80px);
+    }
+    #applicationDiv.chartVisible #titleDiv br,
+    #applicationDiv.chartVisible #statsDiv {
+        display: none;
+    }
 }
 
 .esri-view-width-xlarge .esri-popup__main-container {
@@ -185,7 +258,9 @@ body {
 }
 
 .esri-view-width-less-than-medium.esri-view-height-greater-than-xsmall
-    .esri-popup__main-container {
+    .esri-popup__main-container,
+.esri-view-width-less-than-medium.esri-view-height-greater-than-xsmall
+    #chartWrapper {
     max-height: 500px;
     width: 100%;
 }

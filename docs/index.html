@@ -43,8 +43,6 @@
             <div id="titleDiv" class="esri-widget">
                 <div><b>COVID-19 Spread Over Time</b></div>
                 <div id="updateNote"></div>
-
-                <br />
                 <div id="statsDiv" class="esri-widget"></div>
             </div>
             <div id="sliderContainer" class="esri-widget">
@@ -69,7 +67,25 @@
                     <div id="slider"></div>
                 </div>
             </div>
-            <div id="chartWrapper" class="esri-widget">
+            <div id="chartWrapper" class="chartWrapper">
+                <div class="chartHeader">
+                    <h2 class="chartTitle"></h2>
+                    <div class="esri-popup__header-buttons">
+                        <div
+                            role="button"
+                            tabindex="0"
+                            class="esri-popup__button"
+                            aria-label="Close"
+                            title="Close"
+                            id="closeChart"
+                        >
+                            <span
+                                aria-hidden="true"
+                                class="esri-popup__icon esri-icon-close"
+                            ></span>
+                        </div>
+                    </div>
+                </div>
                 <div id="rateChart"></div>
             </div>
         </div>

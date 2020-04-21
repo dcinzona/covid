@@ -2,14 +2,17 @@
 define([
     "esri/core/promiseUtils",
 ], function (promiseUtils) {
-
-    let layerview, view, layer, selectedCountry, chartWrapper, setDate, shift = [];
+    let maxCompare = 3;
+    let layerview, view, layer, setDate, selectedCountry, chartWrapper, applicationDiv, chart, shift = [];
     function init(lv, v, l, s) {
         layerview = lv;
         view = v;
         layer = l;
         setDate = s;
+        applicationDiv = document.getElementById("applicationDiv");
         chartWrapper = document.getElementById("chartWrapper");
+        let closeButton = document.getElementById('closeChart');
+        closeButton.addEventListener('click', hide);
 
         document.addEventListener('keydown', evt => {
             if (evt.shiftKey) {
@@ -22,27 +25,11 @@ define([
             //console.log(evt);
         });
 
-        view.on("click", runQuery);
-
         am4core.ready(createChart);
 
-        /* */
-        view.popup.actions = [];
-        view.popup.autoOpenEnabled = false;
-        view.popup.autoCloseEnabled = true;
-        view.popup.dockEnabled = true;
-        view.popup.dockOptions = {
-            breakpoint: false,
-            buttonEnabled: false,
-            position: "bottom-right",
-        };
-        view.popup.visibleElements = {
-            featureNavigationEnabled: false
-        }
-        view.popup.on('trigger-action', function (e) {
-            console.log(e);
-        })
-        /* */
+        view.on("click", runQuery);
+
+        window.chart = chart;
     }
 
     let colorYellow = '#f9c653';
@@ -51,24 +38,22 @@ define([
     let colorBlue = '#00b2da';
 
     function createChart() {
+        am4core.options.onlyShowOnViewport = true;
         // Themes begin
         am4core.useTheme(am4themes_dark);
         am4core.useTheme(am4themes_animated);
-        // Themes end
-        // Create chart
-        am4core.options.onlyShowOnViewport = true;
-        rateChart = am4core.create("rateChart", am4charts.XYChart3D);
-        rateChart.responsive.enabled = true;
-        rateChart.numberFormatter.numberFormat = "#.#a";
-        rateChart.colors.step = 2
 
-        var dateAxis = rateChart.xAxes.push(new am4charts.DateAxis());
+        chart = am4core.create("rateChart", am4charts.XYChart3D);
+        chart.numberFormatter.numberFormat = "#.#a";
+        chart.colors.step = 2
+
+        var dateAxis = chart.xAxes.push(new am4charts.DateAxis());
         dateAxis.renderer.grid.template.location = 0;
-        dateAxis.skipEmptyPeriods = true;
+        dateAxis.skipEmptyPeriods = false;
         dateAxis.dateFormats.setKey("day", "MMM d");
         dateAxis.baseInterval = {
             "timeUnit": "day",
-            "count": 3
+            "count": 1
         };
         dateAxis.gridIntervals.setAll([
             { timeUnit: "day", count: 1 },
@@ -79,56 +64,44 @@ define([
             { timeUnit: "week", count: 2 },
             { timeUnit: "month", count: 1 }
         ]);
-        dateAxis.renderer.grid.template.location = 0.5;
+        //dateAxis.renderer.grid.template.location = 0.5;
         dateAxis.renderer.minGridDistance = 50;
-        dateAxis.startLocation = 0;
-        dateAxis.endLocation = 0.5;
-        dateAxis.groupData = true;
+        dateAxis.startLocation = -1;
+        dateAxis.endLocation = 2;
         dateAxis.tooltip.label.fontSize = "0.8em";
-        // Setting up label rotation
-        //dateAxis.renderer.labels.template.rotation = 90;
+        //dataAxis.groupData = true;
 
-        var valueAxis = rateChart.yAxes.push(new am4charts.ValueAxis());
+        var valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
         valueAxis.tooltip.disabled = true;
-        //valueAxis.renderer.labels.template.fill = am4core.color(colorYellow);
         valueAxis.renderer.opposite = true;
-        //valueAxis.logarithmic = true;
-        //valueAxis.renderer.minWidth = 60;
+        valueAxis.rangeChangeDuration = 0;
 
 
         /* Add Cursor */
-        rateChart.cursor = new am4charts.XYCursor();
-        rateChart.cursor.xAxis = dateAxis;
-        rateChart.cursor.lineY.disabled = true;
-        rateChart.cursor.behavior = 'none';
+        chart.cursor = new am4charts.XYCursor();
+        chart.cursor.xAxis = dateAxis;
+        chart.cursor.lineY.disabled = true;
+        chart.cursor.behavior = 'none';
         /* Add Scrollbar */
-        rateChart.scrollbarX = new am4core.Scrollbar();
+        chart.scrollbarX = new am4core.Scrollbar();
         /* Add legend */
-        rateChart.legend = new am4charts.Legend();
-        rateChart.legend.markers.template.disabled = true;
-        rateChart.legend.labels.template.text = "[bold {color}]{name}[/]";
+        chart.legend = new am4charts.Legend();
+        chart.legend.markers.template.disabled = true;
+        chart.legend.labels.template.text = "[bold {color}]{name}[/]";
 
-        //valueAxis2.renderer.grid.template.strokeOpacity = 0.07;
         dateAxis.renderer.grid.template.strokeOpacity = 0.07;
         valueAxis.renderer.grid.template.strokeOpacity = 0.07;
-        /**
-         * ========================================================
-         * Enabling responsive features
-         * ========================================================
-         */
-
-        rateChart.responsive.useDefault = false
-        rateChart.responsive.enabled = true;
-        rateChart.scrollbarX.properties.marginBottom = 20;
-        rateChart.scrollbarX.properties.paddingTop = 0;
-        rateChart.legend.properties.paddingTop = -10
-        rateChart.legend.properties.marginBottom = 10;
-        rateChart.tapToActivate = true;
+        chart.responsive.useDefault = false
+        chart.responsive.enabled = true;
+        chart.scrollbarX.properties.marginBottom = 20;
+        chart.scrollbarX.properties.paddingTop = 0;
+        chart.legend.properties.paddingTop = -10
+        chart.legend.properties.marginBottom = 10;
+        chart.tapToActivate = true;
+        return chart;
     }
 
     function createSeries(name, valueField, tooltipText = undefined, hide = false) {
-
-        chart = rateChart;
         var series = chart.series.push(new am4charts.LineSeries());
         series.name = name;
         series.dataFields.dateX = "date";
@@ -137,7 +110,7 @@ define([
         series.dataFields.customValue = 'country';
         series.tooltipText = tooltipText || `[bold]Cases ([bold ${series.stroke.hex}]{country}[/][bold]): [/]
         ● Total: [bold]{valueY.value}[/]
-        ● Delta: [bold]{valueY.previousChange.formatNumber('+#.#a|-#.#a')}[/]
+        ● Delta: [bold]{dummyData.confirmed.delta.formatNumber('+#.#a|-#.#a')}[/]
         ● ROC: [bold]{dummyData.confirmed.ROCStr}[/]
         ● Deaths: [bold #ffb0b0]{dummyData.deaths.count}[/]`;
         series.strokeWidth = 2;
@@ -145,23 +118,15 @@ define([
         series.legendSettings.itemValueText = "[bold]{valueY.value.formatNumber('#,###')}[/]";
         series.showOnInit = false;
         series.tooltip.getFillFromObject = false;
-        series.tooltip.background.fill = am4core.color('rgba(50, 50, 50, 0.7)');
+        series.tooltip.background.fill = am4core.color('rgb(50,50,50')//'rgba(50, 50, 50, 0.7)');
         series.tooltip.background.stroke = series.stroke.hex;
-        series.tooltip.background.strokeOpacity = 0.5;
+        //series.tooltip.background.strokeOpacity = 0.5;
         series.tooltip.fontSize = "0.8em";
+        //series.tooltip.animationDuration = 10;
+        series.zIndex = 10 - chart.series.length;
         series.fillOpacity = 0.2;
+        //series.showOnInit = chart.series.length > 1;
         return series;
-    }
-
-    function toggleAxes(ev) {
-        var axis = ev.target.yAxis;
-        var disabled = true;
-        axis.series.each(function (series) {
-            if (!series.isHiding && !series.isHidden) {
-                disabled = false;
-            }
-        });
-        axis.disabled = disabled;
     }
 
     function updateChart(arr) {
@@ -201,7 +166,6 @@ define([
             prev = i > 0 ? conf : undefined;
             return conf;
         })
-        //rateChart.data = data;
         createSeries(seriesName(), 'confirmed').data = data;
     }
 
@@ -229,34 +193,32 @@ define([
 
     function show(features, hit) {
         /* */
+        applicationDiv.classList.add("chartVisible");
         updateChart(features);
-        if (!view.popup.visible) {
-            view.popup.location = hit.mapPoint;
-            view.popup.visible = true;
-            view.popup.content = chartWrapper;
-            view.popup.collapsed = false;
-            chartWrapper.classList.add("visible");
-        }
         updateTitle();
         /* */
     }
+    function hide() {
+        applicationDiv.classList.remove("chartVisible");
+    }
 
     function setDimensions() {
-        let chart = rateChart;
         /* placement */
         let count = chart.series.length;
-        chart.depth = 50 * (rateChart.series.length - 1);
-        chart.series.each((series, idx) => {
-            series.dx = chart.depth / (count) * am4core.math.cos(chart.angle) * idx;
-            series.dy = -chart.depth / (count) * am4core.math.sin(chart.angle) * idx;
-        });
+        chart.depth = 25 * (chart.series.length - 1);
         let opp = false
         if (count == 1) {
             opp = true;
             chart.padding(0, 0, 0, 20);
+            chart.angle = 0;
         } else {
             chart.padding(0, 20, 0, 0);
+            chart.angle = 60;
         }
+        chart.series.each((series, idx) => {
+            series.dx = chart.depth / (count) * am4core.math.cos(chart.angle) * idx;
+            series.dy = -chart.depth / (count) * am4core.math.sin(chart.angle) * idx;
+        });
         chart.yAxes.each(aY => {
             aY.renderer.opposite = opp;
         })
@@ -327,12 +289,12 @@ define([
             selectedCountry = hit.graphic.attributes.country;
             if (!selectedCountry) return;
 
-            if (rateChart && rateChart.series.length > 0) {
+            if (chart && chart.series.length > 0) {
 
                 //get existing index
                 let exists = -1;
                 let seriesToRemove = [];
-                rateChart.series.each((t, i) => {
+                chart.series.each((t, i) => {
                     if (t.name == seriesName()) {
                         exists = i;
                     } else {
@@ -340,14 +302,9 @@ define([
                     }
                 });
 
-
-                if (!view.popup.visible) {
-                    view.popup.open();
-                    if (exists > -1) return;
-                }
-                if (view.popup.collapsed) {
-                    view.popup.collapsed = false;
-                    if (exists > -1) return;
+                if (!applicationDiv.classList.contains('chartVisible')) {
+                    applicationDiv.classList.add('chartVisible');
+                    //if (exists > -1) return;
                 }
 
                 if (shift.length > 0) {
@@ -355,12 +312,12 @@ define([
                         return updateTitle();
                     }
                     //only have two
-                    if (rateChart.series.length > 2) {
-                        rateChart.series.removeIndex(1).dispose();
+                    if (chart.series.length >= maxCompare) {
+                        chart.series.removeIndex(1).dispose();
                     }
                 } else {
                     seriesToRemove.forEach(x => {
-                        rateChart.series.removeIndex(rateChart.series.indexOf(x)).dispose();
+                        chart.series.removeIndex(chart.series.indexOf(x)).dispose();
                     });
                     if (exists > -1) {
                         return updateTitle();
@@ -373,7 +330,7 @@ define([
             layer.queryFeatures(queryParams).then(function (results) {
                 let sorted = results.features
                     .filter(x => x.attributes.dateString != todayString)
-                    .sort(sorter);
+                //.sort(sorter);
                 show(sorted, hit);
             });
         });
@@ -381,24 +338,22 @@ define([
 
     function updateTitle() {
         let title = '';
-        if (rateChart.series.length === 1) {
-            let data = rateChart.series.getIndex(0).data;
+        if (chart.series.length === 1) {
+            let data = chart.series.getIndex(0).data;
             let cnf = data.map(x => x.confirmed);
             let dth = data.map(x => x.deaths);
             let cfr = getROC(dth, cnf);
             title = `Spread in <span>${data[0].country}</span> => CFR: <i>${cfr}%</i>`;
         } else {
-            let countries = rateChart.series.values.map(x => x.data.reduce(y => y).country).join(' vs. ');
+            let countries = chart.series.values.map(x => x.data.reduce(y => y).country).join(' vs. ');
             title = `Comparing Spread: <span>${countries}</span>`
         }
-
-        view.popup.title = title;
+        chartWrapper.querySelector('.chartTitle').innerHTML = title;
         setDimensions();
     }
 
     return {
         init: init,
         onClick: runQuery,
-        //template: popupTemplate
     };
 });
