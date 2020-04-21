@@ -38,9 +38,12 @@ body {
     font-style: italic;
     opacity: 0.8;
 }
+
 #statsDiv {
     padding-top: 1rem;
+    font-size: .8rem;
 }
+
 #statsDiv span,
 .esri-popup__header-title span,
 .chartTitle span {
@@ -86,7 +89,7 @@ body {
     height: 60px;
 }
 
-#slider > div + div {
+#slider>div+div {
     margin-left: 20px;
 }
 
@@ -129,15 +132,15 @@ body {
     opacity: 0.7;
 }
 
-.toggle-button > :nth-child(2) {
+.toggle-button> :nth-child(2) {
     display: none;
 }
 
-.toggle-button.toggled > :nth-child(1) {
+.toggle-button.toggled> :nth-child(1) {
     display: none;
 }
 
-.toggle-button.toggled > :nth-child(2) {
+.toggle-button.toggled> :nth-child(2) {
     display: block;
 }
 
@@ -147,7 +150,7 @@ body {
     transition: opacity 200ms;
 }
 
-.tooltip > div {
+.tooltip>div {
     margin: 0 auto;
     padding: 12px;
     border-radius: 4px;
@@ -206,7 +209,8 @@ body {
     padding: 0 5px 5px 10px;
     height: 350px;
 }
-@media screen and (max-width: 400px) {
+
+@media screen and (max-width: 440px) {
     #applicationDiv.chartVisible #chartWrapper {
         position: relative;
         bottom: 0;
@@ -219,12 +223,14 @@ body {
         box-shadow: none;
         border-bottom: solid 1px black;
     }
+
     #applicationDiv.chartVisible #titleDiv br,
     #applicationDiv.chartVisible #statsDiv {
         display: none;
     }
 }
-@media screen and (max-height: 375px) {
+
+@media screen and (max-height: 475px) {
     #applicationDiv.chartVisible #chartWrapper {
         right: 0;
         margin: 0;
@@ -236,38 +242,22 @@ body {
         width: 50vw;
         border-bottom: solid 1px black;
     }
+
     #rateChart {
         height: calc(80vh - 80px);
     }
+
     #applicationDiv.chartVisible #titleDiv br,
     #applicationDiv.chartVisible #statsDiv {
         display: none;
     }
+
+    #titleDiv {
+        font-size: 1rem;
+        ;
+    }
 }
 
-.esri-view-width-xlarge .esri-popup__main-container {
-    min-width: 460px;
-    max-width: 100vw;
-    width: 40vw;
-}
-
-.esri-view-width-less-than-medium.esri-view-height-greater-than-xsmall
-    .esri-popup {
-    width: 100%;
-    margin: 0;
-}
-
-.esri-view-width-less-than-medium.esri-view-height-greater-than-xsmall
-    .esri-popup__main-container,
-.esri-view-width-less-than-medium.esri-view-height-greater-than-xsmall
-    #chartWrapper {
-    max-height: 500px;
-    width: 100%;
-}
-
-.esri-popup.esri-popup--is-docked .esri-popup__content {
-    margin: 0 0 0 10;
-}
 :focus {
     outline: none;
 }
