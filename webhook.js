@@ -28,7 +28,7 @@ exports.server = http
                 }
 
                 if (shouldPull) {
-                    utils.modified = body.head_commit.modified;
+                    utils.modified = utils.getChangedFiles(body);//body.head_commit.modified;
                     exports.job = utils.pull();
                 }
             } catch (ex) {
@@ -42,6 +42,7 @@ exports.server = http
     .listen(port, () => {
         logger.log(`Starting webhook.js on port ${port}`, "restarts.log");
     });
+
 
 process.on("SIGINT", (code) => {
     logger

@@ -21,6 +21,25 @@ function runWebhookTest(pusherName = 'dcinzona') {
     console.log("testing webhook");
     let dj = {
         ref: "refs/heads/master",
+        commits: [
+            {
+                "distinct": true,
+                "message": "mapdata automated update",
+                "author": {
+                    "name": "Automated Process",
+                    "email": "dcinzona@users.noreply.github.com",
+                    "username": "dcinzona"
+                },
+                "committer": {
+                    "name": "Automated Process",
+                    "email": "dcinzona@users.noreply.github.com",
+                    "username": "dcinzona"
+                },
+                "added": [],
+                "removed": [],
+                "modified": ["docs/data/mapdata.json", "webhook.js", "docs/js/amcharts_popup.js"]
+            }
+        ],
         head_commit: {
             modified: [
                 "buildCSV.js",

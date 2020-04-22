@@ -28,20 +28,21 @@ async function updateNPM() {
 async function restartPM2() {
 
     if (isDev) {
-        console.log("checking for need to restart pm2 services");
+        console.log("checking for need to restart pm2 services", exports.modified);
     }
 
     //restart all services when any js files are updated
-    let shouldRestart =
-        exports.modified.filter((e, i) => {
-            return e.endsWith(".js");
-        }).length > 0;
+    let shouldRestart = exports.modified.length > 0;
 
     if (shouldRestart) {
-        logger.log(`Webhook received modified files: ${exports.modified}`);
+        logger.log(`Webhook received modified files: ${JSON.stringify(exports.modified)}`);
         logger.log(`restarting all services...`, "restarts.log");
         process.env.WEBHOOK_PORT = 3001;
-        await spawnPromise("pm2", ["startOrRestart", "ecosystem.config.js"]);
+        if (!isDev) {
+            await spawnPromise("pm2", ["startOrRestart", "ecosystem.config.js"]);
+        }
+    } else {
+        logger.log('No modified files requiring service restart.');
     }
 
     return shouldRestart
@@ -73,3 +74,13 @@ exports.pull = pull;
 exports.modified = [];
 exports.restart = restartPM2;
 exports.arrayContainsString = arrayContainsString;
+
+exports.getChangedFiles = function getImportantCommitFiles(body) {
+    return body.commits.map(x => { return x.added.concat(x.modified, x.removed) })
+        .flat()
+        .filter((v, i, a) =>
+            a.indexOf(v) === i &&
+            v.endsWith('.js') &&
+            !v.startsWith('docs/vendor')
+        );
+}
