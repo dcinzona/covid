@@ -56,7 +56,7 @@ async function checkout() {
     logger.log(`checkout: max: ${new Date(exports.CSVLastUpdatedDate).toLocaleString()}`);
 
     let newData = exports.CSVLastUpdatedDate.getTime() > esriFileStat;
-    if(newData){
+    if (newData) {
         logger.log('new data detected...');
     }
 
@@ -253,7 +253,7 @@ function finalize(recs = buildCSV.records) {
         return x.Lat === "";
     });
     if (missingLatLong.length > 0) {
-        logger.log(`Records missing Lat, Long_: ${missingLatLong}`)
+        logger.log(`Records missing Lat, Long_: ${JSON.stringify(missingLatLong)}`)
     }
     return (buildCSV.records = result);
 }
