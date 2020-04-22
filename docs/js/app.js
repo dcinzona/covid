@@ -1,9 +1,9 @@
-const gmt_domainRoot = `${window.location.protocol}//${
+let windowURI = `${
     window.location.hostname == "localhost"
-        ? "localhost:3000"
-        : window.location.hostname + ':' + window.location.port
+        ? window.location.protocol + "//localhost:3000"
+        : window.location.href
     }`;
-
+const gmt_domainRoot = windowURI.endsWith('/') ? windowURI.slice(0, -1) : windowURI;
 require([
     "esri/request",
     "esri/Map",
