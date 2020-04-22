@@ -101,14 +101,14 @@ define([
         return chart;
     }
 
-    function createSeries(name, valueField, tooltipText = undefined, hide = false) {
+    function createSeries(name, valueField = 'confirmed', tooltipText = undefined, hide = false, placeField = '{country}') {
         var series = chart.series.push(new am4charts.LineSeries());
         series.name = name;
         series.dataFields.dateX = "date";
         series.dataFields.valueY = valueField;
         series.dataFields.dummyData = 'breakdown';
         series.dataFields.customValue = 'country';
-        series.tooltipText = tooltipText || `[bold]Cases ([bold ${series.stroke.hex}]{country}[/][bold]): [/]
+        series.tooltipText = tooltipText || `[bold]Cases ([bold ${series.stroke.hex}]${placeField}[/][bold]): [/]
         ● Total: [bold]{valueY.value}[/]
         ● Delta: [bold]{dummyData.confirmed.delta.formatNumber('+#.#a|-#.#a')}[/]
         ● ROC: [bold]{dummyData.confirmed.ROCStr}[/]
@@ -130,7 +130,7 @@ define([
     }
 
     function updateChart(arr) {
-        let series = createSeries(seriesName(), 'confirmed')
+        let series = createSeries(seriesName(selectedRecord.country), 'confirmed')
         series.data = mapData(arr);
         return series;
     }
@@ -158,6 +158,7 @@ define([
                 'date': x.attributes.dateString,
                 'confirmed': confirmed,
                 'breakdown': {
+                    'place': selectedRecord.place,
                     'deaths': {
                         'count': deaths
                     },
@@ -178,8 +179,8 @@ define([
         return data;
     }
 
-    let seriesName = function () {
-        return `Cases in ${selectedRecord.country}`;
+    let seriesName = function (location = selectedRecord.country) {
+        return `${location}`;
     }
 
     var hitTest = promiseUtils.debounce(function (event) {
@@ -212,10 +213,22 @@ define([
         applicationDiv.classList.remove("chartVisible");
     }
 
+    function groupedSeriesLength() {
+        let ctByCountry = [];
+        chart.series.each((x, i) => {
+            if (!ctByCountry.find(y => y.country === x.data[0].country)) {
+                ctByCountry.push({ country: x.data[0].country, series: x });
+            }
+        });
+        console.log(ctByCountry);
+        return ctByCountry.length;
+    }
+    window.groupedSeriesLength = groupedSeriesLength;
+
     function setDimensions() {
         /* placement */
-        let count = chart.series.length;
-        chart.depth = 25 * (chart.series.length - 1);
+        let count = groupedSeriesLength();
+        chart.depth = 25 * (count - 1);
         let opp = false
         if (count == 1) {
             opp = true;
@@ -225,9 +238,13 @@ define([
             chart.padding(0, 20, 0, 0);
             chart.angle = 60;
         }
+        let processed = [];
         chart.series.each((series, idx) => {
-            series.dx = chart.depth / (count) * am4core.math.cos(chart.angle) * idx;
-            series.dy = -chart.depth / (count) * am4core.math.sin(chart.angle) * idx;
+            let found = processed.find(x => x.data[0].country === series.data[0].country);
+            let index = count != chart.series.length && idx > 1 && series.data[0].country !== 'US' ? idx - 1 : idx;
+            series.dx = found ? found.dx : chart.depth / (count) * am4core.math.cos(chart.angle) * index;
+            series.dy = found ? found.dy : -chart.depth / (count) * am4core.math.sin(chart.angle) * index;
+            if (!found) processed.push(series);
         });
         chart.yAxes.each(aY => {
             aY.renderer.opposite = opp;
@@ -325,7 +342,7 @@ define([
                 let seriesToRemove = [];
                 let found;
                 chart.series.each((t, i) => {
-                    if (t.name == seriesName()) {
+                    if (t.name === seriesName()) {
                         exists = i;
                         found = t;
                     } else {
@@ -343,7 +360,7 @@ define([
                         return updateTitle();
                     }
                     //only have two
-                    if (chart.series.length >= maxCompare) {
+                    if (groupedSeriesLength() >= maxCompare) {
                         chart.series.removeIndex(1).dispose();
                     }
                 } else {
@@ -352,10 +369,7 @@ define([
                     });
                     if (exists > -1) {
                         if (queryPlaces) {
-                            let series = found;
-                            execQuery(`AND place = '${selectedRecord.place}'`).then(arrP => {
-                                console.log(arrP);
-                            });
+                            loadPlaceSeries(selectedRecord.place);
                         }
                         return updateTitle();
                     }
@@ -364,13 +378,21 @@ define([
             execQuery().then(arr => {
                 let series = show(arr, hit);
                 if (queryPlaces) {
-                    execQuery(`AND place = '${selectedRecord.place}'`).then(arrP => {
-                        console.log(arrP);
-                    });
+                    loadPlaceSeries(selectedRecord.place);
                 }
             })
         });
     };
+
+    function loadPlaceSeries(place) {
+
+        execQuery(`AND place = '${place}'`).then(arrP => {
+            console.log(arrP);
+            let tooltip = '{dummyData.place}: [bold]{valueY.value}[/]';
+            createSeries(`${place}`, 'confirmed', null, false, '{dummyData.place}').data = mapData(arrP);
+            setDimensions();
+        });
+    }
 
     function execQuery(filter = '') {
         const queryParams = getStatQuery();
@@ -385,14 +407,16 @@ define([
     }
     function updateTitle() {
         let title = '';
-        if (chart.series.length === 1) {
+        if (groupedSeriesLength() === 1) {
             let data = chart.series.getIndex(0).data;
             let cnf = data.map(x => x.confirmed);
             let dth = data.map(x => x.deaths);
             let cfr = getROC(dth, cnf);
             title = `Spread in <span>${data[0].country}</span> => CFR: <i>${cfr}%</i>`;
         } else {
-            let countries = chart.series.values.map(x => x.data.reduce(y => y).country).join(' vs. ');
+            let countries = chart.series.values
+                .map(x => x.data.reduce(y => y).country)
+                .filter((v, i, a) => a.indexOf(v) === i).join(' vs. ');
             title = `Comparing Spread: <span>${countries}</span>`
         }
         chartWrapper.querySelector('.chartTitle').innerHTML = title;
