@@ -241,7 +241,8 @@ define([
         let processed = [];
         chart.series.each((series, idx) => {
             let found = processed.find(x => x.data[0].country === series.data[0].country);
-            let index = count != chart.series.length && idx > 1 && series.data[0].country !== 'US' ? idx - 1 : idx;
+            let diff = chart.series.length - count
+            let index = count != chart.series.length && idx > 1 && series.data[0].country !== 'US' ? idx - diff : idx;
             series.dx = found ? found.dx : chart.depth / (count) * am4core.math.cos(chart.angle) * index;
             series.dy = found ? found.dy : -chart.depth / (count) * am4core.math.sin(chart.angle) * index;
             if (!found) processed.push(series);
@@ -342,7 +343,7 @@ define([
                 let seriesToRemove = [];
                 let found;
                 chart.series.each((t, i) => {
-                    if (t.name === seriesName()) {
+                    if (t.data[0].country === selectedRecord.country) {
                         exists = i;
                         found = t;
                     } else {
@@ -357,6 +358,19 @@ define([
 
                 if (shift.length > 0) {
                     if (exists != -1) {
+                        if (selectedRecord.country == 'US' && chart.series.length <= maxCompare) {
+                            if (queryPlaces) {
+                                if (chart.series.length >= maxCompare) {
+                                    chart.series.removeIndex(
+                                        chart.series.values.findIndex(x => {
+                                            let d = x.data[0];
+                                            return d.country === 'US' && x.name === d.place;
+                                        })
+                                    ).dispose();
+                                }
+                                loadPlaceSeries(selectedRecord.place);
+                            }
+                        }
                         return updateTitle();
                     }
                     //only have two
@@ -369,6 +383,7 @@ define([
                     });
                     if (exists > -1) {
                         if (queryPlaces) {
+                            chart.series.removeIndex(1).dispose();
                             loadPlaceSeries(selectedRecord.place);
                         }
                         return updateTitle();
