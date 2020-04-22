@@ -18,11 +18,9 @@ define([
             if (evt.shiftKey) {
                 shift.push(evt);
             }
-            //console.log(shift);
         });
         document.addEventListener('keyup', evt => {
             shift = shift.filter(x => x.keyCode != evt.keyCode);
-            //console.log(evt);
         });
 
         am4core.ready(createChart);
@@ -136,9 +134,7 @@ define([
     }
 
     function mapData(arr) {
-
         let prev;
-        //console.log(arr);
         let data = arr.map((x, i) => {
             let confirmed = x.attributes.sum_confirmed;
             let deaths = x.attributes.sum_deaths;
@@ -220,7 +216,6 @@ define([
                 ctByCountry.push({ country: x.data[0].country, series: x });
             }
         });
-        console.log(ctByCountry);
         return ctByCountry.length;
     }
     window.groupedSeriesLength = groupedSeriesLength;
@@ -402,7 +397,6 @@ define([
     function loadPlaceSeries(place) {
 
         execQuery(`AND place = '${place}'`).then(arrP => {
-            console.log(arrP);
             let tooltip = '{dummyData.place}: [bold]{valueY.value}[/]';
             createSeries(`${place}`, 'confirmed', null, false, '{dummyData.place}').data = mapData(arrP);
             setDimensions();
