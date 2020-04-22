@@ -3,7 +3,7 @@ define([
     "esri/core/promiseUtils",
 ], function (promiseUtils) {
     let maxCompare = 3;
-    let layerview, view, layer, setDate, selectedCountry, chartWrapper, applicationDiv, chart, shift = [];
+    let layerview, view, layer, setDate, chartWrapper, applicationDiv, chart, shift = [];
     function init(lv, v, l, s) {
         layerview = lv;
         view = v;
@@ -130,7 +130,15 @@ define([
     }
 
     function updateChart(arr) {
+        let series = createSeries(seriesName(), 'confirmed')
+        series.data = mapData(arr);
+        return series;
+    }
+
+    function mapData(arr) {
+
         let prev;
+        //console.log(arr);
         let data = arr.map((x, i) => {
             let confirmed = x.attributes.sum_confirmed;
             let deaths = x.attributes.sum_deaths;
@@ -145,7 +153,8 @@ define([
                 roc = posNeg ? getROC(dChange, delta) : 0;
             }
             let conf = {
-                'country': selectedCountry,
+                'country': selectedRecord.country,
+                'place': selectedRecord.place,
                 'date': x.attributes.dateString,
                 'confirmed': confirmed,
                 'breakdown': {
@@ -165,12 +174,12 @@ define([
             }
             prev = i > 0 ? conf : undefined;
             return conf;
-        })
-        createSeries(seriesName(), 'confirmed').data = data;
+        });
+        return data;
     }
 
     let seriesName = function () {
-        return `Cases in ${selectedCountry}`;
+        return `Cases in ${selectedRecord.country}`;
     }
 
     var hitTest = promiseUtils.debounce(function (event) {
@@ -194,8 +203,9 @@ define([
     function show(features, hit) {
         /* */
         applicationDiv.classList.add("chartVisible");
-        updateChart(features);
+        let series = updateChart(features);
         updateTitle();
+        return series;
         /* */
     }
     function hide() {
@@ -254,14 +264,26 @@ define([
                 statisticType: "sum",
             },
             {
+                onStatisticField: "r",
+                outStatisticFieldName: "sum_recovered",
+                statisticType: "sum",
+            },
+            {
                 onStatisticField: "1=1",
                 outStatisticFieldName: "total_places",
                 statisticType: "count",
             },
         ];
-        query.returnDistinctValues = true;
+        //query.returnDistinctValues = true;
         query.groupByFieldsForStatistics = ["dateString"];
         query.orderByFields = ["dateString ASC"];
+        //return getFeatureQuery();
+        return query;
+    }
+
+    function getFeatureQuery() {
+        const query = layer.createQuery();
+        query.outFields = ['*'];
         return query;
     }
 
@@ -277,6 +299,8 @@ define([
         }
     }
 
+
+    let selectedRecord;
     let runQuery = function (event) {
         //event.stopPropagation();
         hitTest(event).then(function (hit) {
@@ -286,17 +310,24 @@ define([
                 return;
             }
 
-            selectedCountry = hit.graphic.attributes.country;
-            if (!selectedCountry) return;
+            if (!hit.graphic.attributes) return;
+            let firstRun = selectedRecord == undefined;
+            let queryPlaces = firstRun;
+            if (!firstRun) {
+                queryPlaces = hit.graphic.attributes.country == 'US' && selectedRecord.place != hit.graphic.attributes.place;
+            }
+            selectedRecord = hit.graphic.attributes;
 
             if (chart && chart.series.length > 0) {
 
                 //get existing index
                 let exists = -1;
                 let seriesToRemove = [];
+                let found;
                 chart.series.each((t, i) => {
                     if (t.name == seriesName()) {
                         exists = i;
+                        found = t;
                     } else {
                         seriesToRemove.push(t);
                     }
@@ -320,22 +351,38 @@ define([
                         chart.series.removeIndex(chart.series.indexOf(x)).dispose();
                     });
                     if (exists > -1) {
+                        if (queryPlaces) {
+                            let series = found;
+                            execQuery(`AND place = '${selectedRecord.place}'`).then(arrP => {
+                                console.log(arrP);
+                            });
+                        }
                         return updateTitle();
                     }
                 }
             }
-            const queryParams = getStatQuery();
-            queryParams.where = " country = '" + selectedCountry + "'";
-            let todayString = new Date().toISOString().split('T')[0];
-            layer.queryFeatures(queryParams).then(function (results) {
-                let sorted = results.features
-                    .filter(x => x.attributes.dateString != todayString)
-                //.sort(sorter);
-                show(sorted, hit);
-            });
+            execQuery().then(arr => {
+                let series = show(arr, hit);
+                if (queryPlaces) {
+                    execQuery(`AND place = '${selectedRecord.place}'`).then(arrP => {
+                        console.log(arrP);
+                    });
+                }
+            })
         });
     };
 
+    function execQuery(filter = '') {
+        const queryParams = getStatQuery();
+        queryParams.where = ` country = '${selectedRecord.country}' ${filter}`;
+        let todayString = new Date().toISOString().split('T')[0];
+        return layer.queryFeatures(queryParams).then(function (results) {
+            let sorted = results.features
+                .filter(x => x.attributes.dateString != todayString)
+            //.sort(sorter);
+            return sorted;
+        });
+    }
     function updateTitle() {
         let title = '';
         if (chart.series.length === 1) {
