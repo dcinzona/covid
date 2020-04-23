@@ -33,6 +33,29 @@ require([
 ) {
     let layerView;
     let layer;
+    window.gisMap = {
+        get view() { return view; },
+        get map() { return map; },
+        get layerView() { return layerView; },
+        filter(field = 'place', place = 'Veteran Hospitals, US') {
+            layerView.filter = { where: `${field} = '${place}'` }
+            layerView.queryFeatures().then(result => { console.log(result.features); });
+        },
+        customWhereFilter(...where) {
+            let today = util.convertToDateString(new Date());
+            let args = [...arguments];
+            where = args.join(' AND ');
+            let filter = { where: `dateString = '${today}' ${where.length > 0 ? ' AND ' + where : ''}` };
+            layerView.filter = filter;
+            layerView.queryFeatures()
+                .then(result => { console.log(result.features.map(x => x.attributes)); })
+                .catch(x => {
+                    console.error(x.message, x.details);
+                    console.log("Example: gisMap.customWhereFilter(`place like '%Military%'`)");
+                });
+            return layerView.filter;
+        }
+    };
     /* */
     esriRequest(util.dataUrl, {
         responseType: "json",

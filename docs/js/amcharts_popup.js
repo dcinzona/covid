@@ -85,6 +85,51 @@ define([
         dateAxis.tooltip.label.fontSize = "0.8em";
         //dataAxis.groupData = true;
 
+        let today = new Date();
+        let yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        var pattern = new am4core.LinePattern();
+        pattern.width = 10;
+        pattern.height = 10;
+        pattern.strokeWidth = 2;
+        pattern.stroke = am4core.color("red");
+        pattern.fill = pattern.stroke;
+        pattern.fillOpacity = .5;
+        pattern.rotation = 45;
+        /* */
+        var range = dateAxis.axisRanges.create();
+        range.date = yesterday;
+        range.endDate = today;
+        range.axisFill.fill = pattern;//am4core.color("red");
+        range.axisFill.fillOpacity = 0.4;
+        //range.grid.strokeOpacity = 0;
+        //console.log(range);
+        range.axisFill.tooltip = new am4core.Tooltip();
+        range.axisFill.tooltipText = "[opacity:.9 letter-spacing:2px]Partial Data...[/]";
+        range.axisFill.tooltip.rotation = 90;
+        range.axisFill.interactionsEnabled = true;
+        range.axisFill.isMeasured = true;
+        range.axisFill.tooltip.fontSize = "11px";
+        range.axisFill.tooltip.getFillFromObject = false;
+        range.axisFill.tooltip.background.fill = pattern;//am4core.color('rgb(50,50,50')//'rgba(50, 50, 50, 0.7)');
+        range.axisFill.tooltip.background.fillOpacity = pattern.fillOpacity * range.axisFill.fillOpacity;
+        range.axisFill.tooltip.background.stroke = pattern.stroke;
+        range.axisFill.tooltip.background.strokeWidth = 1;
+        range.axisFill.tooltip.background.strokeOpacity = range.axisFill.tooltip.background.fillOpacity;
+        range.axisFill.tooltip.label.padding(2, 4, 2, 4);
+        /* *
+        range.label.inside = true;
+        var label = range.label;
+        label.text = 'Collecting Data...';
+        label.fontSize = '10px';
+        label.rotation = 90;
+        label.isMeasured = false;
+        label.textAlign = "middle";
+        label.textValign = "middle";
+        label.fill = range.grid.stroke;
+        /* */
+
         var valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
         valueAxis.tooltip.disabled = true;
         valueAxis.renderer.opposite = true;
@@ -138,6 +183,7 @@ define([
         series.tooltip.fontSize = "0.8em";
         //series.tooltip.animationDuration = 10;
         series.zIndex = 10 - chart.series.length;
+        series.tooltip.zIndex = series.zIndex;
         series.fillOpacity = 0.2;
         //series.showOnInit = chart.series.length > 1;
         return series;
@@ -228,8 +274,16 @@ define([
     function groupedSeriesLength() {
         let ctByCountry = [];
         chart.series.each((x, i) => {
-            if (!ctByCountry.find(y => y.country === x.data[0].country)) {
-                ctByCountry.push({ country: x.data[0].country, series: x });
+            try {
+                if (x.data && x.data.length > 0) {
+                    if (!ctByCountry.find(y => y.country === x.data[0].country)) {
+                        ctByCountry.push({ country: x.data[0].country, series: x });
+                    }
+                } else {
+                    console.error(x);
+                }
+            } catch (ex) {
+                console.error(x);
             }
         });
         return ctByCountry.length;
@@ -251,12 +305,14 @@ define([
         }
         let processed = [];
         chart.series.each((series, idx) => {
-            let found = processed.find(x => x.data[0].country === series.data[0].country);
-            let diff = chart.series.length - count
-            let index = count != chart.series.length && idx > 1 && series.data[0].country !== series.name ? idx - diff : idx;
-            series.dx = found ? found.dx : chart.depth / (count) * am4core.math.cos(chart.angle) * index;
-            series.dy = found ? found.dy : -chart.depth / (count) * am4core.math.sin(chart.angle) * index;
-            if (!found) processed.push(series);
+            if (series.data.length > 0) {
+                let found = processed.find(x => x.data[0].country === series.data[0].country);
+                let diff = chart.series.length - count
+                let index = count != chart.series.length && idx > 1 && series.data[0].country !== series.name ? idx - diff : idx;
+                series.dx = found ? found.dx : chart.depth / (count) * am4core.math.cos(chart.angle) * index;
+                series.dy = found ? found.dy : -chart.depth / (count) * am4core.math.sin(chart.angle) * index;
+                if (!found) processed.push(series);
+            }
         });
         chart.yAxes.each(aY => {
             aY.renderer.opposite = opp;
@@ -378,8 +434,10 @@ define([
                 });
                 let countrySeriesToRemove = [];
                 chart.series.each(c => {
-                    if (countriesToRemove.includes(c.data[0].country)) {
-                        countrySeriesToRemove.push(c);
+                    if (c.data.length > 0) {
+                        if (countriesToRemove.includes(c.data[0].country)) {
+                            countrySeriesToRemove.push(c);
+                        }
                     }
                 })
 
@@ -393,7 +451,7 @@ define([
                                 //remove the first sub-place location for the country
                                 let idx = chart.series.values.findIndex(x => {
                                     let d = x.data[0];
-                                    return d.country === selectedRecord.country && x.name !== d.country;
+                                    return d ? d.country === selectedRecord.country && x.name !== d.country : true;
                                 });
                                 if (idx) {
                                     chart.series.removeIndex(idx).dispose();
@@ -462,7 +520,7 @@ define([
         let todayString = new Date().toISOString().split('T')[0];
         return layer.queryFeatures(queryParams).then(function (results) {
             let sorted = results.features
-                .filter(x => x.attributes.dateString != todayString)
+            //.filter(x => x.attributes.dateString != todayString)
             //.sort(sorter);
             return sorted;
         });

@@ -52,13 +52,12 @@ async function checkout() {
     esriFileStat = fs.existsSync(geojsonPath)
         ? new Date(fs.statSync(geojsonPath).mtime).getTime()
         : 0;
-    logger.log(`checkout: esriFileStat: ${new Date(esriFileStat).toLocaleString()}`);
-    logger.log(`checkout: max: ${new Date(exports.CSVLastUpdatedDate).toLocaleString()}`);
+
+    logger.log(`last updated: mapdata.json: ${new Date(esriFileStat).toLocaleString()}`);
+    logger.log(`last updated: ${recentCases}: ${new Date(exports.CSVLastUpdatedDate).toLocaleString()}`);
 
     let newData = exports.CSVLastUpdatedDate.getTime() > esriFileStat;
-    if (newData) {
-        logger.log('new data detected...');
-    }
+    logger.log(`exports.CSVLastUpdatedDate.getTime() > esriFileStat = ${newData}`);
 
     logger.log("checking out master branch to build time series data set");
     await setBranch("master");
@@ -67,8 +66,10 @@ async function checkout() {
         return await logger.log(`Daily logs weren't processed and no new data detected`);
     }
     console.info(`Daily reports record count: ${jsonData.length}`);
+
+    //await savePopLookups();
+
     buildCSV.records = [];
-    //use array.concat
     logger.log("checking out web-data and getting latest data");
     await setBranch("web-data");
     if (csvFilesExist([recentCases])) {
@@ -93,6 +94,35 @@ async function checkout() {
     console.info(`Concatenated data record count: ${jsonData.length}`);
     logger.log(`Saving to file`);
     return saveAsGeoJSON(jsonData);
+}
+
+async function savePopLookups() {
+    logger.log('Processing Lookups CSV...');
+    //since we are on master, parse and save the lookup table
+    let lookupJSONPath = './docs/data/lookups.json';
+    let lookupCsv = `${repo}/csse_covid_19_data/UID_ISO_FIPS_LookUp_Table.csv`;
+    let localLastUpdated = fs.existsSync(lookupJSONPath)
+        ? new Date(fs.statSync(lookupJSONPath).mtime).getTime()
+        : 0;
+    if (fs.existsSync(lookupCsv)) {
+        let remoteLastUpdated = await lastUpdatedDate(lookupCsv);
+        if (remoteLastUpdated > localLastUpdated) {
+
+            let d = fs.readFileSync(`${lookupCsv}`).toString("utf8");
+            let recs = parse(d, { columns: true })
+                .filter((x) => {
+                    return parseInt(x.Population) > 0 && `${x.Admin2}` === '';
+                })
+                .map((x) => {
+                    return x;
+                });
+            console.log(recs);
+            //TODO: Update datawriter to support saving multiple files and pushing.
+            //await dataWriter.save("./esri.geojson", JSON.stringify(esriGeo));
+        }
+    } else {
+        logger.log(`File not found: ${lookupCsv}`);
+    }
 }
 
 async function setBranch(branch) {
@@ -171,6 +201,18 @@ function setLatLongForSpecialCases(rec) {
         case "Northern Mariana Islands, US":
             rec.Lat = 15.18883;
             rec.Long_ = 145.7535;
+            break;
+        case "US Military, US":
+            rec.Lat = 33.42550825488307;
+            rec.Long_ = -75.64934587047526;
+            break;
+        case "Federal Bureau of Prisons, US":
+            rec.Lat = 32.37175163445504;
+            rec.Long_ = -75.64934587047526;
+            break;
+        case "Veteran Hospitals, US":
+            rec.Lat = 31.37175163445504;
+            rec.Long_ = -75.64934587047526;
             break;
     }
     return rec;
