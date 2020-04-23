@@ -3,7 +3,16 @@ define([
     "esri/core/promiseUtils",
 ], function (promiseUtils) {
     let maxCompare = 3;
-    let layerview, view, layer, setDate, chartWrapper, applicationDiv, chart, shift = [];
+    let layerview, view, layer, setDate, chartWrapper, applicationDiv, chart;
+
+    let compareMode = {
+        get enabled() { return document.querySelector('#compareMode:checked') !== null; },
+        toggle: function () {
+            let el = document.getElementById('compareMode');
+            el.checked = !el.checked;
+        }
+    }
+
     function init(lv, v, l, s) {
         layerview = lv;
         view = v;
@@ -14,6 +23,12 @@ define([
         let closeButton = document.getElementById('closeChart');
         closeButton.addEventListener('click', hide);
 
+        document.addEventListener('keyup', evt => {
+            if (evt.key == 'c') {
+                compareMode.toggle();
+            }
+        });
+        /*
         document.addEventListener('keydown', evt => {
             if (evt.shiftKey) {
                 shift.push(evt);
@@ -22,6 +37,7 @@ define([
         document.addEventListener('keyup', evt => {
             shift = shift.filter(x => x.keyCode != evt.keyCode);
         });
+        */
 
         am4core.ready(createChart);
 
@@ -237,7 +253,7 @@ define([
         chart.series.each((series, idx) => {
             let found = processed.find(x => x.data[0].country === series.data[0].country);
             let diff = chart.series.length - count
-            let index = count != chart.series.length && idx > 1 && series.data[0].country !== 'US' ? idx - diff : idx;
+            let index = count != chart.series.length && idx > 1 && series.data[0].country !== series.name ? idx - diff : idx;
             series.dx = found ? found.dx : chart.depth / (count) * am4core.math.cos(chart.angle) * index;
             series.dy = found ? found.dy : -chart.depth / (count) * am4core.math.sin(chart.angle) * index;
             if (!found) processed.push(series);
@@ -324,49 +340,87 @@ define([
             }
 
             if (!hit.graphic.attributes) return;
-            let firstRun = selectedRecord == undefined;
-            let queryPlaces = firstRun;
-            if (!firstRun) {
-                queryPlaces = hit.graphic.attributes.country == 'US' && selectedRecord.place != hit.graphic.attributes.place;
+
+            let firstRun = selectedRecord === undefined;
+            let countryNotEqPlace = hit.graphic.attributes.country.trim() !== hit.graphic.attributes.place.trim();
+            let queryPlaces = firstRun && countryNotEqPlace;
+            if (!queryPlaces) {
+                queryPlaces = countryNotEqPlace && selectedRecord.place != hit.graphic.attributes.place;
             }
+
             selectedRecord = hit.graphic.attributes;
 
             if (chart && chart.series.length > 0) {
+
+                if (!applicationDiv.classList.contains('chartVisible')) {
+                    applicationDiv.classList.add('chartVisible');
+                }
 
                 //get existing index
                 let exists = -1;
                 let seriesToRemove = [];
                 let found;
+                let countriesToRemove = [];
                 chart.series.each((t, i) => {
-                    if (t.data[0].country === selectedRecord.country) {
+                    let country = t.data[0].country;
+                    if (t.name === selectedRecord.place || t.name === selectedRecord.country) {
+                        //already in there
                         exists = i;
                         found = t;
                     } else {
                         seriesToRemove.push(t);
                     }
+                    if (country !== selectedRecord.country
+                        && t.name !== country
+                        && countriesToRemove.includes(country) == false) {
+                        countriesToRemove.push(country);
+                    }
                 });
+                let countrySeriesToRemove = [];
+                chart.series.each(c => {
+                    if (countriesToRemove.includes(c.data[0].country)) {
+                        countrySeriesToRemove.push(c);
+                    }
+                })
 
-                if (!applicationDiv.classList.contains('chartVisible')) {
-                    applicationDiv.classList.add('chartVisible');
-                    //if (exists > -1) return;
-                }
-
-                if (shift.length > 0) {
+                //this is a mess
+                if (compareMode.enabled) {
+                    let lengthPlus1 = chart.series.length + 1;
                     if (exists != -1) {
-                        if (selectedRecord.country == 'US' && chart.series.length <= maxCompare) {
-                            if (queryPlaces) {
-                                if (chart.series.length >= maxCompare) {
-                                    chart.series.removeIndex(
-                                        chart.series.values.findIndex(x => {
-                                            let d = x.data[0];
-                                            return d.country === 'US' && x.name === d.place;
-                                        })
-                                    ).dispose();
+                        console.log(lengthPlus1);
+                        if (queryPlaces) {
+                            if (lengthPlus1 > maxCompare) {
+                                //remove the first sub-place location for the country
+                                let idx = chart.series.values.findIndex(x => {
+                                    let d = x.data[0];
+                                    return d.country === selectedRecord.country && x.name !== d.country;
+                                });
+                                if (idx) {
+                                    chart.series.removeIndex(idx).dispose();
                                 }
-                                loadPlaceSeries(selectedRecord.place);
+                            }
+                            //if adding place to series would make it longer than max
+                            if (lengthPlus1 > maxCompare) {
+                                countrySeriesToRemove.forEach(x => {
+                                    chart.series.removeIndex(chart.series.indexOf(x)).dispose();
+                                });
+                            }
+                            loadPlaceSeries(selectedRecord.place);
+                        } else {
+                            if (lengthPlus1 >= maxCompare) {
+                                countrySeriesToRemove.forEach(x => {
+                                    chart.series.removeIndex(chart.series.indexOf(x)).dispose();
+                                });
                             }
                         }
                         return updateTitle();
+                    }
+                    if (lengthPlus1 > maxCompare) {
+                        if (queryPlaces || groupedSeriesLength() != chart.series.length) {
+                            countrySeriesToRemove.forEach(x => {
+                                chart.series.removeIndex(chart.series.indexOf(x)).dispose();
+                            });
+                        }
                     }
                     //only have two
                     if (groupedSeriesLength() >= maxCompare) {
@@ -378,7 +432,7 @@ define([
                     });
                     if (exists > -1) {
                         if (queryPlaces) {
-                            chart.series.removeIndex(1).dispose();
+                            if (chart.series.length > 1) chart.series.removeIndex(1).dispose();
                             loadPlaceSeries(selectedRecord.place);
                         }
                         return updateTitle();
@@ -395,7 +449,6 @@ define([
     };
 
     function loadPlaceSeries(place) {
-
         execQuery(`AND place = '${place}'`).then(arrP => {
             let tooltip = '{dummyData.place}: [bold]{valueY.value}[/]';
             createSeries(`${place}`, 'confirmed', null, false, '{dummyData.place}').data = mapData(arrP);
