@@ -67,7 +67,7 @@ async function checkout() {
     }
     console.info(`Daily reports record count: ${jsonData.length}`);
 
-    //await savePopLookups();
+    await savePopLookups();
 
     buildCSV.records = [];
     logger.log("checking out web-data and getting latest data");
@@ -93,7 +93,10 @@ async function checkout() {
     }
     console.info(`Concatenated data record count: ${jsonData.length}`);
     logger.log(`Saving to file`);
-    return saveAsGeoJSON(jsonData);
+    let saveResponse = await saveAsGeoJSON(jsonData);
+    console.log(saveResponse);
+    //conditionally push saved files
+    await dataWriter.push();
 }
 
 async function savePopLookups() {
@@ -114,11 +117,12 @@ async function savePopLookups() {
                     return parseInt(x.Population) > 0 && `${x.Admin2}` === '';
                 })
                 .map((x) => {
+                    x.Population = parseInt(x.Population);
                     return x;
                 });
             console.log(recs);
             //TODO: Update datawriter to support saving multiple files and pushing.
-            //await dataWriter.save("./esri.geojson", JSON.stringify(esriGeo));
+            await dataWriter.save(lookupJSONPath, JSON.stringify(recs));
         }
     } else {
         logger.log(`File not found: ${lookupCsv}`);
@@ -302,8 +306,9 @@ function finalize(recs = buildCSV.records) {
 
 async function saveAsGeoJSON(recs) {
     let esriGeo = new esriData(recs, exports.CSVLastUpdatedDate);
-    await dataWriter.save("./esri.geojson", JSON.stringify(esriGeo));
-    return esriGeo;
+    let saveResponse = await dataWriter.save(dataWriter.mapDataPath, JSON.stringify(esriGeo));
+    return saveResponse;
+    //return esriGeo;
 }
 
 exports.run = run;

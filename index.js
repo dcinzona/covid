@@ -4,7 +4,6 @@ const express = require("express");
 const app = express();
 const fs = require("fs");
 const logger = require("./logger");
-const sharedConfig = require("./docs/js/shared.js");
 const { spawnPromise } = require("./resources/utils");
 
 require("dotenv").config();
@@ -26,11 +25,6 @@ app.get("/geo", (req, res) => {
     res.sendFile("./tools/geo.html", { root: __dirname });
 });
 
-// Data API
-app.get(sharedConfig.dataURI, (req, res) => {
-    getEsriDataV2(res);
-});
-
 process.env.FORCE_COLOR = true;
 // Log API
 app.get("/logs/error", async (req, res) => {
@@ -39,25 +33,25 @@ app.get("/logs/error", async (req, res) => {
         res.send(buildStatusHTML(spwn));
     } else res.sendStatus(403);
 });
-app.get("/logs/out",async (req, res) => {
+app.get("/logs/out", async (req, res) => {
     if (checkKey(req)) {
         let spwn = await spawnPromise("pm2", ["logs", "--nostream"]);
         res.send(buildStatusHTML(spwn));
     } else res.sendStatus(403);
 });
-app.get("/logs/index",async (req, res) => {
+app.get("/logs/index", async (req, res) => {
     if (checkKey(req)) {
         let spwn = await spawnPromise("pm2", ["logs", "index", "--nostream"]);
         res.send(buildStatusHTML(spwn));
     } else res.sendStatus(403);
 });
-app.get("/logs/webhook",async (req, res) => {
+app.get("/logs/webhook", async (req, res) => {
     if (checkKey(req)) {
         let spwn = await spawnPromise("pm2", ["logs", "webhook", "--nostream"]);
         res.send(buildStatusHTML(spwn));
     } else res.sendStatus(403);
 });
-app.get("/logs/cron",async (req, res) => {
+app.get("/logs/cron", async (req, res) => {
     if (checkKey(req)) {
         let spwn = await spawnPromise("pm2", ["logs", "cron", "--nostream"]);
         res.send(buildStatusHTML(spwn));
@@ -125,12 +119,6 @@ function fileExists(path) {
         logger.error(err);
     }
     return false;
-}
-
-function getEsriDataV2(res) {
-    logger.log("getting esri data v2");
-    res.header("Content-Type", "application/geo+json");
-    res.sendFile("./esri.geojson", { root: __dirname });
 }
 
 const port = process.env.PORT || 3000;

@@ -1,4 +1,5 @@
-define([`${gmt_domainRoot}/js/shared.js`], function() {
+define([`${gmt_domainRoot}/js/shared.js`], function () {
+    sharedConfig.domainRoot = gmt_domainRoot;
     function convertToDateString(value) {
         //YYYY-MM-DD
         let date = new Date(value);

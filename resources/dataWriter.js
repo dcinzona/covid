@@ -8,111 +8,151 @@ var cf = require("cloudflare")({
     token: process.env.CF_TOKEN,
 });
 
+
+let filePaths = new Set();
+exports.mapDataPath = "docs/data/mapdata.json";
+exports.popDataPath = "docs/data/lookups.json";
+
+let currentBranch = 'dev';
+
 async function save(path, data) {
-    let mapdatapath = "docs/data/mapdata.json";
-    let currentBranch = await spawnPromise("git", [
+
+    updateFilePaths(exports.mapDataPath, exports.popDataPath, path);
+
+    currentBranch = await spawnPromise("git", [
         "rev-parse",
         "--abbrev-ref",
         "HEAD",
     ]);
 
     return await write(path, data);
+}
 
-    async function write(path, data) {
-        return await fs
-            .writeFile(path, data, { flag: "w+" })
-            .then(async () => {
-                //save to docs directory
-                //why are we doing this? So that we can host all files directly from github pages and not touch out server at all
-                //the server basically just functions as a worker to build the file and then push it back to the master repo
-                await writeToDocsData(data);
-                let mapStatus = await spawnPromise("git", [
-                    "status",
-                    "-s",
-                    mapdatapath,
-                ]);
-                //check if the docs file has changed
-                let isChanged = mapStatus.indexOf(mapdatapath) != -1;
-                if (isChanged) {
-                    await pushMapData();
-                    if (!isDev) await purgeCache();
-                } else {
-                    logger.log("Map data did not change after compile");
-                }
-                return "Writes done";
-            })
-            .catch((err) => {
-                logger.error(err);
-                return err;
-            });
+function updateFilePaths(...paths) {
+    let args = [...arguments];
+    args.forEach(path => {
+        filePaths.add(path);
+    });
+    return filePaths;
+}
+
+async function write(path, data) {
+
+    if (isDev && currentBranch === "master") {
+        //checkout remote file first
+        await spawnPromise("git", ['pull']); //just get all files
     }
 
-    async function writeToDocsData(data) {
-        if (isDev && currentBranch === "master") {
-            //checkout remote file first
-            await spawnPromise("git", ["checkout", "master", mapdatapath]);
+    return await fs
+        .writeFile(path, data, { flag: "w+" })
+        .then(async () => {
+            //save to docs directory
+            //why are we doing this? So that we can host all files directly from github pages and not touch out server at all
+            //the server basically just functions as a worker to build the file and then push it back to the master repo
+            //await writeToDocsData(data);
+            logger.log(`Data Writes Done: ${path}`);
+            return "Writes done";
+        })
+        .catch((err) => {
+            logger.error(err);
+            return err;
+        });
+}
+
+async function pushMapData() {
+
+    //add files in case they are not already tracked
+    await spawnPromise('git', ['add', 'docs/data/*']);
+
+    let params = [
+        "status",
+        "-s"];
+    params.concat([...filePaths]);
+
+    let mapStatus = await spawnPromise("git", params);
+
+    //check if the docs file has changed
+    let isChanged = false;
+    filePaths.forEach(p => {
+        if (mapStatus.indexOf(p) !== -1) {
+            isChanged = true;
         }
-        return await fs.writeFile(`./${mapdatapath}`, data, { flag: "w+" });
-    }
+    });
 
-    async function pushMapData() {
-        //if (currentBranch === "master") {
-        //commit and push mapdata.json
-        return spawnPromise("git", [
-            "commit",
+    if (isChanged) {
+        logger.log("Data changed and requires push");
+
+        let params = ["commit",
             "-m",
-            "mapdata automated update",
-            mapdatapath,
-        ])
+            "data automated update"];
+        params = params.concat([...filePaths]); // merge the two arrays
+
+        if (isDev && currentBranch === 'master') {
+            console.log(params);
+            return cleanup('[pushMapData]: Running in dev so not actually executing commit on master')
+        }
+
+        return spawnPromise("git", params)
             .then(async () => {
                 if (!isDev) {
                     await spawnPromise("git", ["push"]);
-                    return logger.log("DATA PUSHED");
+                    return cleanup("DATA PUSHED");
                 } else {
-                    return logger.log("Running in dev, not pushing");
+                    return cleanup("Running in dev, not pushing");
                 }
             })
             .catch(async (err) => {
-                return logger.error(err);
+                return cleanup(err, true);
             });
-        //}
+
+    } else {
+        return logger.log("Data did not change, no push required");
     }
 
-    async function purgeCache() {
-        //clear cloudflare cache
-        try {
-            let cachedFiles = isDev
-                ? "https://covid-data.gmt.io/api/v1/esri.geojson"
-                : "https://covid.gmt.io" + sharedConfig.pubURI;
-            let params = {
-                files: [cachedFiles],
-            };
-            if (!isDev) {
-                params.files.push("https://covid.gmt.io");
-            }
-            return cf.zones
-                .purgeCache(process.env.CF_ZONE_ID, params)
-                .then((resp) => {
-                    if (!resp.success) {
-                        logger.err(
-                            `Errors clearing cache: ${JSON.stringify(
-                                resp.errors
-                            )}`
-                        );
-                    } else {
-                        logger.log("Cloudflare cache cleared");
-                    }
-                    return resp.success;
-                })
-                .catch((err) => {
-                    logger.error(err);
-                    return false;
-                });
-        } catch (purgeErr) {
-            logger.error(purgeErr);
-            return false;
+}
+
+function cleanup(msg, err = false) {
+    filePaths.clear();
+    return err ? logger.error(msg) : logger.log(msg);
+}
+
+async function purgeCache() {
+    //clear cloudflare cache
+    try {
+        let cachedFiles = isDev
+            ? "https://covid-data.gmt.io/api/v1/esri.geojson"
+            : "https://covid.gmt.io" + sharedConfig.pubURI;
+        let params = {
+            files: [cachedFiles],
+        };
+        if (!isDev) {
+            params.files.push("https://covid.gmt.io");
         }
+        return cf.zones
+            .purgeCache(process.env.CF_ZONE_ID, params)
+            .then((resp) => {
+                if (!resp.success) {
+                    logger.err(
+                        `Errors clearing cache: ${JSON.stringify(
+                            resp.errors
+                        )}`
+                    );
+                } else {
+                    logger.log("Cloudflare cache cleared");
+                }
+                return resp.success;
+            })
+            .catch((err) => {
+                logger.error(err);
+                return false;
+            });
+    } catch (purgeErr) {
+        logger.error(purgeErr);
+        return false;
     }
 }
 
 exports.save = save;
+exports.write = write;
+exports.push = pushMapData;
+exports.purgeCFCache = purgeCache;
