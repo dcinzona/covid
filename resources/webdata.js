@@ -67,6 +67,8 @@ async function checkout() {
     //always savePopups
     await savePopLookups();
 
+
+    logger.log("Starting repoParser.getJSONData...");
     let jsonData = await repoParser.getJSONData(forceRun || newData);
 
     if (jsonData.length === 0 && !newData) {
@@ -128,6 +130,8 @@ async function savePopLookups() {
             console.log(recs);
             //TODO: Update datawriter to support saving multiple files and pushing.
             await dataWriter.save(lookupJSONPath, JSON.stringify(recs));
+        } else {
+            logger.log(`Lookups CSV did not change, not processing`);
         }
     } else {
         logger.log(`File not found: ${lookupCsv}`);

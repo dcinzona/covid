@@ -27,7 +27,7 @@ exports.getCsvFiles = async function (path = filepath) {
 };
 
 async function lastUpdatedDateWithGit(file) {
-    mtime = await spawnPromise('git',['--no-pager', 'log','-1','--pretty=%ai',file], {cwd : repo});
+    mtime = await spawnPromise('git', ['--no-pager', 'log', '-1', '--pretty=%ai', file], { cwd: repo });
     mtime = new Date(mtime);
     return mtime;
 }
@@ -39,10 +39,10 @@ function newDataDetected(lastModArray, geojsonPath = "./docs/data/mapdata.json")
     esriFileStat = fs.existsSync(geojsonPath)
         ? new Date(fs.statSync(geojsonPath).mtime).getTime()
         : 0;
-    console.log(`esriFileStat: ${new Date(esriFileStat).toLocaleString()}`);
+    console.log(`mapdata.json last updated: ${new Date(esriFileStat).toLocaleString()}`);
     let maxCallback = (acc, cur) => Math.max(acc, cur);
     let max = Object.values(lastModArray).reduce(maxCallback);
-    console.log(`max: ${new Date(max).toLocaleString()}`);
+    console.log(`remote files last updated: ${new Date(max).toLocaleString()}`);
     let filesNewerThanJSON = max > esriFileStat;
 
     return filesNewerThanJSON;
@@ -70,12 +70,12 @@ exports.getJSONData = async function (force = false) {
 
         logger.log(
             `${
-                filesNewerThanJSON
-                    ? "geojson is out of date"
-                    : "no new records to process"
+            filesNewerThanJSON
+                ? "geojson is out of date"
+                : "no new records to process"
             }`
         );
-        if(force){
+        if (force) {
             logger.log('Force build enabled... processing csv files')
         }
         if (filesNewerThanJSON || force) {
