@@ -1,7 +1,6 @@
 //git clone --single-branch --branch web-data https://github.com/CSSEGISandData/COVID-19.git COVID-19-web-data
 //git clone https://github.com/CSSEGISandData/COVID-19.git COVID-19-web-data
 const parse = require("csv-parse/lib/sync");
-const { exec, execSync } = require("child_process");
 const fs = require("fs");
 require("dotenv").config();
 const buildCSV = require("./buildCSV");
@@ -12,17 +11,19 @@ const firstBy = require("thenby");
 const repoParser = require("../repoParser");
 const { spawnPromise } = require("./utils");
 
-let repo = process.env.COVID_REPO_DIR// + "-web-data";
+let repo = process.env.COVID_REPO_DIR;// + "-web-data";
 //branches = master ()
 
 //fields
 //FIPS	Admin2	Province_State	Country_Region	Last_Update	Lat	Long_	Confirmed	Deaths	Recovered	Active	Combined_Key
 //Updated with "today's" data regularly (e.g. 4/8)
 let recentCases = `${repo}/data/cases.csv`;
+let casesTimeCSVPath = `${repo}/data/cases_time.csv`;
 
 //last updated date format is M/D/YY for some unknown reason
 let forceRun = false;
 let isRunning = false;
+let lookups = [];
 async function run(force = false) {
     if (isRunning) {
         logger.log('Previous cron job is already running...exiting');
@@ -52,9 +53,9 @@ async function checkout() {
     await setBranch('web-data');
     exports.CSVLastUpdatedDate = await lastUpdatedDate(recentCases);
     let geojsonPath = './docs/data/mapdata.json';
-    esriFileStat = fs.existsSync(geojsonPath)
-        ? new Date(fs.statSync(geojsonPath).mtime).getTime()
-        : 0;
+    esriFileStat = fs.existsSync(geojsonPath) ?
+        new Date(fs.statSync(geojsonPath).mtime).getTime() :
+        0;
 
     logger.log(`last updated: mapdata.json: ${new Date(esriFileStat).toLocaleString()}`);
     logger.log(`last updated: ${recentCases}: ${new Date(exports.CSVLastUpdatedDate).toLocaleString()}`);
@@ -67,7 +68,6 @@ async function checkout() {
     //always savePopups
     await savePopLookups();
 
-
     logger.log("Starting repoParser.getJSONData...");
     let jsonData = await repoParser.getJSONData(forceRun || newData);
 
@@ -78,6 +78,8 @@ async function checkout() {
     console.info(`Daily reports record count: ${jsonData.length}`);
     logger.log("checking out web-data and getting latest data");
     await setBranch("web-data");
+
+
     buildCSV.records = [];
     if (csvFilesExist([recentCases])) {
         logger.log("Processing recentCases");
@@ -106,41 +108,106 @@ async function checkout() {
     await dataWriter.push();
 }
 
+/*
+FIELDS
+Country_Region,Last_Update,Confirmed,Deaths,Recovered,Active,Delta_Confirmed,Delta_Recovered,Incident_Rate,People_Tested,People_Hospitalized,Province_State,FIPS,UID,iso3,Report_Date_String 
+*/
+exports.parseCasesTimeCsv = async function (file = casesTimeCSVPath) {
+
+    if (lookups.length == 0) {
+        await setBranch('master');
+        await savePopLookups();
+        await setBranch('web-data');
+    }
+    logger.log('Starting parseCasesTimeCsv');
+    let fileLastUpdated = await lastUpdatedDate(file);
+    let Last_Updated = fixDateFormat(fileLastUpdated.toISOString());
+    let d = fs.readFileSync(`${file}`).toString("utf8");
+    let recs = parse(d, { columns: true })
+        .filter((x) => {
+            return parseInt(x.Confirmed) > 0;
+        })
+        .map(x => {
+            x.Last_Update = fixDateFormat(x.Last_Update);
+            x.Confirmed = parseInt(x.Confirmed);
+            x.Deaths = parseInt(x.Deaths);
+            x.Recovered = x.Recovered != '' ? parseInt(x.Recovered) : 0;
+            x.Active = x.Active != '' ? parseInt(x.Active) : 0;
+            x.Last_Reported = x.Last_Update;
+            //Set last updated to last modified date on file for continuity over time
+            x.Last_Update = Last_Updated;
+            x.IsoDate = x.Last_Update;
+            x.time = new Date(x.Last_Update).getTime();
+            x.ck2 = `${x.IsoDate}:${x.Province_State}:${x.Country_Region}`;
+            x.Combined_Key = x.Combined_Key || x.Province_State == '' ? x.Country_Region : `${x.Province_State}, ${x.Country_Region}`;
+            return setCoords(x);
+        });
+
+    logger.log('Done parseCasesTimeCsv');
+    return recs;
+}
+
+function setCoords(record) {
+    let lu = lookups.find(x => x.Combined_Key == record.Combined_Key);
+    if (lu) {
+        record.Lat = lu.Lat;
+        record.Long_ = lu.Long_;
+        record.Population = lu.Population;
+    }
+    return record;
+    //throw 'done';
+}
+
 async function savePopLookups() {
     logger.log('Processing Lookups CSV...');
     //since we are on master, parse and save the lookup table
     let lookupJSONPath = './docs/data/lookups.json';
     let lookupCsv = `${repo}/csse_covid_19_data/UID_ISO_FIPS_LookUp_Table.csv`;
-    let localLastUpdated = fs.existsSync(lookupJSONPath)
-        ? new Date(fs.statSync(lookupJSONPath).mtime).getTime()
+    let localLastUpdated = fs.existsSync(lookupJSONPath) ?
+        new Date(fs.statSync(lookupJSONPath).mtime).getTime()
         : 0;
     if (fs.existsSync(lookupCsv)) {
+        let d = fs.readFileSync(`${lookupCsv}`).toString("utf8");
+        lookups = parse(d, { columns: true })
+            .filter((x) => {
+                return parseInt(x.Population) > 0 && `${x.Admin2}` === '';
+            })
+            .map((x) => {
+                x.Population = parseInt(x.Population);
+                x.Lat = parseFloat(x.Lat, 10);
+                x.Long_ = parseFloat(x.Long_, 10);
+                return x;
+            });
         let remoteLastUpdated = await lastUpdatedDate(lookupCsv);
         if (remoteLastUpdated > localLastUpdated) {
-
-            let d = fs.readFileSync(`${lookupCsv}`).toString("utf8");
-            let recs = parse(d, { columns: true })
-                .filter((x) => {
-                    return parseInt(x.Population) > 0 && `${x.Admin2}` === '';
-                })
-                .map((x) => {
-                    x.Population = parseInt(x.Population);
-                    return x;
-                });
-            console.log(recs);
-            //TODO: Update datawriter to support saving multiple files and pushing.
             await dataWriter.save(lookupJSONPath, JSON.stringify(recs));
         } else {
-            logger.log(`Lookups CSV did not change, not processing`);
+            logger.log(`Lookups CSV did not change, not saving`);
         }
     } else {
         logger.log(`File not found: ${lookupCsv}`);
     }
+    return lookups;
 }
 
 async function setBranch(branch) {
     try {
-        let resp = execSync(`git checkout ${branch} && git pull`, { cwd: repo });
+        logger.log(`Setting branch: ${branch}`);
+        let resp = await spawnPromise('git', ['checkout', branch], { cwd: repo })
+            .then(async success => {
+                if (success.startsWith('Your branch is up to date with')) {
+                    logger.log(`Branch is already up to date with ${branch}`);
+                } else {
+                    logger.log(success);
+                    let pull = await spawnPromise('git', ['pull'], { cwd: repo });
+                    logger.log(pull);
+                    return pull;
+                }
+                return success;
+            }, err => {
+                logger.error(err);
+                return err;
+            });
         return resp;
     } catch (ex) {
         logger.error("Error running setBranch\n" + ex);
@@ -163,6 +230,7 @@ function csvFilesExist(arr) {
 }
 
 exports.CSVLastUpdatedDate = new Date();
+
 //we are only processing one CSV here (the most recent data)
 async function parseCsv(file) {
     //get file last modified date
@@ -234,8 +302,8 @@ function setLatLongForSpecialCases(rec) {
 function checkUSCombined(record) {
     record.Province_State = record.Province_State || "";
     record.Combined_Key =
-        record.Province_State.trim() !== ""
-            ? `${record.Province_State.trim()}, ${record.Country_Region.trim()}`
+        record.Province_State.trim() !== "" ?
+            `${record.Province_State.trim()}, ${record.Country_Region.trim()}`
             : record.Country_Region.trim();
     while (record.Combined_Key.indexOf(",") === 0) {
         record.Combined_Key = record.Combined_Key.substring(1);
@@ -275,11 +343,11 @@ function finalize(recs = buildCSV.records) {
         })
         .map((x) => {
             //update coordinates based on state
-            x.Lat = buildCSV.recMapContains(x.Combined_Key)
-                ? buildCSV.recMapGet(x.Combined_Key).Lat
+            x.Lat = buildCSV.recMapContains(x.Combined_Key) ?
+                buildCSV.recMapGet(x.Combined_Key).Lat
                 : x.Lat;
-            x.Long_ = buildCSV.recMapContains(x.Combined_Key)
-                ? buildCSV.recMapGet(x.Combined_Key).Long_
+            x.Long_ = buildCSV.recMapContains(x.Combined_Key) ?
+                buildCSV.recMapGet(x.Combined_Key).Long_
                 : x.Long_;
 
             x = setLatLongForSpecialCases(x);
@@ -308,7 +376,7 @@ function finalize(recs = buildCSV.records) {
         return x.Lat === "";
     });
     if (missingLatLong.length > 0) {
-        logger.log(`Records missing Lat, Long_: ${JSON.stringify(missingLatLong)}`)
+        logger.log(`Records missing Lat, Long_: ${JSON.stringify(missingLatLong)}`);
     }
     return (buildCSV.records = result);
 }

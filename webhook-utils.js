@@ -1,13 +1,9 @@
 require("dotenv").config();
 var isDev = process.env.ENV === "DEV";
-const http = require("http");
 const crypto = require("crypto");
-const { exec, execSync, spawn } = require("child_process");
 const logger = require("./logger");
 const { spawnPromise } = require("./resources/utils");
 const SECRET = process.env.WEBHOOK_SECRET;
-
-let services = ["index.js", "cron.js", "webhook.js"];
 
 async function pull() {
     return spawnPromise("git", ["pull"]).then(() => {

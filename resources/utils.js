@@ -1,4 +1,4 @@
-const { spawn, SpawnOptions } = require("child_process");
+const spawn = require('child_process').spawn;
 const fs = require("fs");
 const logger = require("../logger");
 
@@ -13,12 +13,16 @@ function spawnPromise(cmd, args, options = {}) {
 
         diffProcess.on("exit", (code) => {
             if (code === 0) {
-                return resolve(stdo);
+                resolve(stdo);
+                return;
             }
             logger.err(err);
             reject(err);
+            return;
         });
     });
 }
 
-module.exports = { spawnPromise: spawnPromise }
+module.exports = {
+    spawnPromise: spawnPromise
+}

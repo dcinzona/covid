@@ -10,19 +10,19 @@ let filepath = `${repo}/csse_covid_19_data/csse_covid_19_daily_reports/`;
 
 exports.getCsvFiles = async function (path = filepath) {
     let files = [];
-    let filesWithLastMod = {};
+    //let filesWithLastMod = {};
     const dir = await fs.promises.opendir(path);
     for await (const dirent of dir) {
         if (dirent.name.endsWith(".csv")) {
-            let fullPath = `${path}${dirent.name}`;
+            //let fullPath = `${path}${dirent.name}`;
             let fname = dirent.name.replace(".csv", "");
-            filesWithLastMod[fname] = await lastUpdatedDateWithGit(fullPath);//getFileUpdatedDate(fullPath);
+            //filesWithLastMod[fname] = await lastUpdatedDateWithGit(fullPath);//getFileUpdatedDate(fullPath);
             files.push(fname);
         }
     }
     return {
         files: files,
-        lastMod: filesWithLastMod,
+        //lastMod: filesWithLastMod,
     };
 };
 
@@ -36,8 +36,8 @@ function newDataDetected(lastModArray, geojsonPath = "./docs/data/mapdata.json")
     if (Object.values(lastModArray).length == 0) {
         return false;
     }
-    esriFileStat = fs.existsSync(geojsonPath)
-        ? new Date(fs.statSync(geojsonPath).mtime).getTime()
+    esriFileStat = fs.existsSync(geojsonPath) ?
+        new Date(fs.statSync(geojsonPath).mtime).getTime()
         : 0;
     console.log(`mapdata.json last updated: ${new Date(esriFileStat).toLocaleString()}`);
     let maxCallback = (acc, cur) => Math.max(acc, cur);
@@ -66,21 +66,25 @@ exports.getJSONData = async function (force = false) {
     if (csvFiles.files.length === 0) {
         logger.error(`No files to process at path: ${filepath}`);
     } else {
+        data = await buildDataset(csvFiles.files.sort());
+        return data; //always build
+        /*
         let filesNewerThanJSON = newDataDetected(csvFiles.lastMod);
 
         logger.log(
             `${
-            filesNewerThanJSON
-                ? "geojson is out of date"
+            filesNewerThanJSON ?
+                "geojson is out of date"
                 : "no new records to process"
             }`
         );
         if (force) {
-            logger.log('Force build enabled... processing csv files')
+            logger.log('Force build enabled... processing csv files');
         }
         if (filesNewerThanJSON || force) {
             data = await buildDataset(csvFiles.files.sort());
-        }
+        } 
+        */
     }
 
     return data;
