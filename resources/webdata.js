@@ -45,6 +45,9 @@ async function run(force = false) {
 }
 
 async function checkout() {
+    //always build data because we check if anything changed prior to pushing so there's no harm in building every time.
+    forceRun = true;
+
     //check if recent data was updated
     await setBranch('web-data');
     exports.CSVLastUpdatedDate = await lastUpdatedDate(recentCases);
@@ -57,11 +60,11 @@ async function checkout() {
     logger.log(`last updated: ${recentCases}: ${new Date(exports.CSVLastUpdatedDate).toLocaleString()}`);
 
     let newData = exports.CSVLastUpdatedDate.getTime() > esriFileStat;
-    logger.log(`exports.CSVLastUpdatedDate.getTime() > esriFileStat = ${newData}`);
 
     logger.log("checking out master branch to build time series data set");
-
     await setBranch("master");
+
+    //always savePopups
     await savePopLookups();
 
     let jsonData = await repoParser.getJSONData(forceRun || newData);
