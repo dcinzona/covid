@@ -134,16 +134,17 @@ exports.parseCasesTimeCsv = async function (file = casesTimeCSVPath) {
             x.Recovered = x.Recovered != '' ? parseInt(x.Recovered) : 0;
             x.Active = x.Active != '' ? parseInt(x.Active) : 0;
             x.Last_Reported = x.Last_Update;
-            //Set last updated to last modified date on file for continuity over time
-            x.Last_Update = Last_Updated;
             x.IsoDate = x.Last_Update;
+            //Set last updated to last modified date on file for continuity over time
+            x.Last_Updated = Last_Updated;
             x.time = new Date(x.Last_Update).getTime();
             x.ck2 = `${x.IsoDate}:${x.Province_State}:${x.Country_Region}`;
             x.Combined_Key = x.Combined_Key || x.Province_State == '' ? x.Country_Region : `${x.Province_State}, ${x.Country_Region}`;
+            x = setLatLongForSpecialCases(x);
             return setCoords(x);
         });
 
-    logger.log('Done parseCasesTimeCsv');
+    logger.log(`Done parseCasesTimeCsv - Total Records: ${recs.length}`);
     return recs;
 }
 
@@ -278,6 +279,14 @@ function setLatLongForSpecialCases(rec) {
         case "Diamond Princess, US":
             rec.Lat = 26.115986;
             rec.Long_ = -90.787142;
+            break;
+        case "Grand Princess, US":
+            rec.Lat = 27.115986;
+            rec.Long_ = -90.787142;
+            break;
+        case "Diamond Princess":
+            rec.Lat = 0;
+            rec.Long_ = 1;
             break;
         case "Northern Mariana Islands, US":
             rec.Lat = 15.18883;
