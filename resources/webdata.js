@@ -60,18 +60,20 @@ async function checkout() {
     logger.log(`exports.CSVLastUpdatedDate.getTime() > esriFileStat = ${newData}`);
 
     logger.log("checking out master branch to build time series data set");
+
     await setBranch("master");
+    await savePopLookups();
+
     let jsonData = await repoParser.getJSONData(forceRun || newData);
+
     if (jsonData.length === 0 && !newData) {
         return await logger.log(`Daily logs weren't processed and no new data detected`);
     }
+
     console.info(`Daily reports record count: ${jsonData.length}`);
-
-    await savePopLookups();
-
-    buildCSV.records = [];
     logger.log("checking out web-data and getting latest data");
     await setBranch("web-data");
+    buildCSV.records = [];
     if (csvFilesExist([recentCases])) {
         logger.log("Processing recentCases");
         let recs = await parseCsv(recentCases);
