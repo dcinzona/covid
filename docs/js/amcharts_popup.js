@@ -85,9 +85,11 @@ define([
         dateAxis.tooltip.label.fontSize = "0.8em";
         //dataAxis.groupData = true;
 
-        let today = new Date();
-        let yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
+        let now = new Date();
+        let todayUTC = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+        let yesterday = new Date(now);
+        yesterday.setDate(todayUTC.getDate() - 1);
+        todayUTC.setDate(todayUTC.getDate() + 1);
 
         var pattern = new am4core.LinePattern();
         pattern.width = 10;
@@ -100,7 +102,7 @@ define([
         /* */
         var range = dateAxis.axisRanges.create();
         range.date = yesterday;
-        range.endDate = today;
+        range.endDate = todayUTC;
         range.axisFill.fill = pattern;//am4core.color("red");
         range.axisFill.fillOpacity = 0.4;
         //range.grid.strokeOpacity = 0;
