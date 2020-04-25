@@ -10,7 +10,8 @@
         "webhook": "node webhook.js",
         "webhook-test": "node tests.js webhook",
         "webdata": "node -e \"require('./resources/webdata').run()\"",
-        "webdata-force": "node -e \"require('./resources/webdata').run(true)\""
+        "webdata-force": "node -e \"require('./resources/webdata').run(true)\"",
+        "webdata-test": "node tests.js webdata"
     },
     "keywords": [],
     "author": "",

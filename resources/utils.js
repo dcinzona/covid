@@ -16,7 +16,7 @@ function spawnPromise(cmd, args, options = {}) {
                 resolve(stdo);
                 return;
             }
-            logger.err(err);
+            logger.error(err);
             reject(err);
             return;
         });

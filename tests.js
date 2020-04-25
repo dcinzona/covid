@@ -14,7 +14,21 @@ if (process.argv.length > 2) {
             let name = process.argv.length > 3 ? process.argv[3] : undefined;
             runWebhookTest(name);
             break;
+        case "webdata":
+            runWebdataTest().then(console.log('DONE'));
+            break;
     }
+}
+
+async function runWebdataTest() {
+    let webdata = require('./resources/webdata');
+    await webdata.setBranch('web-data');
+    let cases_csv = await webdata.parseCasesTimeCsv();
+    await webdata.setBranch('master');
+    const repoParser = require("./repoParser");
+    let jsonData = await repoParser.getJSONData(true);
+    console.log(`cases_csv: ${cases_csv.length}`);
+    console.log(`jsonData : ${jsonData.length}`);
 }
 
 function runWebhookTest(pusherName = 'dcinzona') {

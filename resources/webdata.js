@@ -215,6 +215,7 @@ async function setBranch(branch) {
         return ex;
     }
 }
+exports.setBranch = setBranch;
 
 function csvFilesExist(arr) {
     let allFilesExist = true;
