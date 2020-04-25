@@ -71,18 +71,23 @@ async function checkout() {
     //always savePopups
     await savePopLookups();
 
+    /* */
     logger.log("Starting repoParser.getJSONData...");
     let dailyReportRecs = await repoParser.getJSONData(forceRun || newData);
 
     if (dailyReportRecs.length === 0 && !newData) {
         return await logger.log(`Daily logs weren't processed and no new data detected`);
     }
-
     console.info(`Daily reports record count: ${dailyReportRecs.length}`);
+
+    /* */
+
     logger.log("checking out web-data and getting latest data");
     await setBranch("web-data");
-
-
+    /*
+        let dailyReportRecs = await parseCasesTimeCsv();
+        console.info(`Daily reports record count: ${dailyReportRecs.length}`);
+    */
     buildCSV.records = [];
     if (csvFilesExist([recentCases])) {
         logger.log("Processing recentCases");
@@ -104,6 +109,8 @@ async function checkout() {
         dailyReportRecs = dailyReportRecs.concat(recsToJoin).sort(firstBy("time"));
     }
     console.info(`Concatenated data record count: ${dailyReportRecs.length}`);
+    logger.log('Updating population info');
+    dailyReportRecs = dailyReportRecs.map(x => { return setCoords(x); });
     logger.log(`Saving to file`);
     let saveResponse = await saveAsGeoJSON(dailyReportRecs);
     console.log(saveResponse);
@@ -115,7 +122,7 @@ async function checkout() {
 FIELDS
 Country_Region,Last_Update,Confirmed,Deaths,Recovered,Active,Delta_Confirmed,Delta_Recovered,Incident_Rate,People_Tested,People_Hospitalized,Province_State,FIPS,UID,iso3,Report_Date_String 
 */
-exports.parseCasesTimeCsv = async function (file = casesTimeCSVPath) {
+async function parseCasesTimeCsv(file = casesTimeCSVPath) {
 
     if (lookups.length == 0) {
         let opts = { cwd: repo };
@@ -131,7 +138,9 @@ exports.parseCasesTimeCsv = async function (file = casesTimeCSVPath) {
     let d = fs.readFileSync(`${file}`).toString("utf8");
     let recs = parse(d, { columns: true })
         .filter((x) => {
-            return parseInt(x.Confirmed) > 0;
+            return parseInt(x.Confirmed) > 0 &&
+                ((x.Country_Region === 'US' && x.Province_State || '' !== '') ||
+                    x.Country_Region !== 'US');
         })
         .map(x => {
             x.Last_Update = fixDateFormat(x.Last_Update);
@@ -148,6 +157,8 @@ exports.parseCasesTimeCsv = async function (file = casesTimeCSVPath) {
             x.ck2 = `${x.IsoDate}:${x.Province_State}:${x.Country_Region}`;
             x.Combined_Key = x.Combined_Key || x.Province_State === '' ? x.Country_Region : `${x.Province_State}, ${x.Country_Region}`;
             x.UID = `${x.IsoDate}:${x.Combined_Key}`;
+            x.Label = x.Combined_Key;
+            x.Country = x.Country_Region;
             x = setLatLongForSpecialCases(x);
             return setCoords(x);
         });
@@ -155,6 +166,7 @@ exports.parseCasesTimeCsv = async function (file = casesTimeCSVPath) {
     logger.log(`Done parseCasesTimeCsv - Total Records: ${recs.length}`);
     return recs;
 };
+exports.parseCasesTimeCsv = parseCasesTimeCsv;
 
 function setCoords(record, luInput = lookups) {
     let lu = luInput.find(x => x.Combined_Key == record.Combined_Key);

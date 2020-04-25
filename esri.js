@@ -20,19 +20,17 @@ exports.points = {
 "use strict";
 
 module.exports = class payload {
-    type = 'FeatureCollection';
-    last_updated;
-    features = [];
 
-    constructor(data, lastUpdated = new Date()){
+    constructor(data, lastUpdated = new Date()) {
+        this.type = 'FeatureCollection';
         this.last_updated = lastUpdated;
         this.features = [];
         data.forEach(rec => {
             let time = Date.parse(rec.IsoDate);
-            if(time){
+            if (time) {
                 this.features.push(new feature(rec));
             }
-            else{
+            else {
                 console.error(rec);
             }
         });
@@ -40,33 +38,23 @@ module.exports = class payload {
 }
 
 class feature {
-    type = "Feature";
-    geometry;
-    properties;
-    constructor(rec){
+    constructor(rec) {
+        this.type = "Feature";
         this.geometry = new geometry(rec.Lat, rec.Long || rec.Long_);
         this.properties = new properties(rec);
     }
 }
 
 class geometry {
-    type = "Point";
-    coordinates = [];
-    constructor(lat, long){
+    constructor(lat, long) {
+        this.type = "Point";
+        this.coordinates = [];
         this.coordinates.push(long, lat);
     }
 }
 
 class properties {
-    ct;
-    place;
-    time;
-    country;
-    dateString;
-    //coords;
-    d;
-    r;
-    constructor(rec){
+    constructor(rec) {
         this.ct = parseInt(rec.Confirmed);
         this.place = rec.Label == 'United Kingdom, United Kingdom' ? 'United Kingdom' : rec.Label.trim();
         this.time = Date.parse(rec.IsoDate);
@@ -75,5 +63,6 @@ class properties {
         this.country = rec.Country;
         this.d = parseInt(rec.Deaths || 0);
         this.r = parseInt(rec.Recovered || 0);
+        this.pop = parseInt(rec.Population || 0);
     }
 }
