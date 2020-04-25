@@ -15,20 +15,39 @@ if (process.argv.length > 2) {
             runWebhookTest(name);
             break;
         case "webdata":
-            runWebdataTest().then(console.log('DONE'));
+            runWebdataTest();//.then(console.log('DONE'));
             break;
     }
 }
 
 async function runWebdataTest() {
     let webdata = require('./resources/webdata');
+    await webdata.setBranch('master');
+    let lookups = webdata.getLookupsArray();
+    const repoParser = require("./repoParser");
+    let dailyReportRecs = await repoParser.getJSONData(true);
+    dailyReportRecs = dailyReportRecs.map(x => webdata.setCoordsAndPopulation(x));
     await webdata.setBranch('web-data');
     let cases_csv = await webdata.parseCasesTimeCsv();
-    await webdata.setBranch('master');
-    const repoParser = require("./repoParser");
-    let jsonData = await repoParser.getJSONData(true);
+
     console.log(`cases_csv: ${cases_csv.length}`);
-    console.log(`jsonData : ${jsonData.length}`);
+    console.log(`dailyReportRecs : ${dailyReportRecs.length}`);
+    //cases_csv.sort((a, b) => (a.time > b.time) ? 1 : -1);
+    cases_csv.sort(sorter);
+    dailyReportRecs.sort(sorter);
+    //console.log(cases_csv.find(x => x.Country_Region === 'US' && x.Province_State !== ''),
+    //    dailyReportRecs.find(x => x.Country_Region === 'US' && x.Province_State !== ''));
+    let drUIDset = new Set(dailyReportRecs.map(x => { return x.UID }));
+    let casesCsvSet = new Set(cases_csv.map(x => { return x.UID }));
+
+    let difference = new Set([...drUIDset].filter(x => !casesCsvSet.has(x)))
+    console.log(dailyReportRecs.find(x => x.UID == [...difference][difference.size - 1]));
+
+    //console.log(cases_csv.find(x => x.Population === undefined))
+}
+
+function sorter(a, b) {
+    return (a.time < b.time) ? 1 : (a.time === b.time) ? ((a.UID < b.UID) ? 1 : -1) : -1;
 }
 
 function runWebhookTest(pusherName = 'dcinzona') {

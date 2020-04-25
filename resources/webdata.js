@@ -69,13 +69,13 @@ async function checkout() {
     await savePopLookups();
 
     logger.log("Starting repoParser.getJSONData...");
-    let jsonData = await repoParser.getJSONData(forceRun || newData);
+    let dailyReportRecs = await repoParser.getJSONData(forceRun || newData);
 
-    if (jsonData.length === 0 && !newData) {
+    if (dailyReportRecs.length === 0 && !newData) {
         return await logger.log(`Daily logs weren't processed and no new data detected`);
     }
 
-    console.info(`Daily reports record count: ${jsonData.length}`);
+    console.info(`Daily reports record count: ${dailyReportRecs.length}`);
     logger.log("checking out web-data and getting latest data");
     await setBranch("web-data");
 
@@ -89,20 +89,20 @@ async function checkout() {
         logger.log(`Mapping to common format and joining datasets`);
         let recsToJoin = [];
         buildCSV.mapRecords(recs2).forEach((rec) => {
-            let jdFoundIdx = jsonData.findIndex((el) => {
+            let jdFoundIdx = dailyReportRecs.findIndex((el) => {
                 return el.UID === rec.UID;
             });
             if (jdFoundIdx > -1) {
-                jsonData[jdFoundIdx] = rec;
+                dailyReportRecs[jdFoundIdx] = rec;
             } else {
                 recsToJoin.push(rec);
             }
         });
-        jsonData = jsonData.concat(recsToJoin).sort(firstBy("time"));
+        dailyReportRecs = dailyReportRecs.concat(recsToJoin).sort(firstBy("time"));
     }
-    console.info(`Concatenated data record count: ${jsonData.length}`);
+    console.info(`Concatenated data record count: ${dailyReportRecs.length}`);
     logger.log(`Saving to file`);
-    let saveResponse = await saveAsGeoJSON(jsonData);
+    let saveResponse = await saveAsGeoJSON(dailyReportRecs);
     console.log(saveResponse);
     //conditionally push saved files
     await dataWriter.push();
@@ -138,8 +138,10 @@ exports.parseCasesTimeCsv = async function (file = casesTimeCSVPath) {
             //Set last updated to last modified date on file for continuity over time
             x.Last_Updated = Last_Updated;
             x.time = new Date(x.Last_Update).getTime();
+            x.Province_State = x.Province_State || '';
             x.ck2 = `${x.IsoDate}:${x.Province_State}:${x.Country_Region}`;
-            x.Combined_Key = x.Combined_Key || x.Province_State == '' ? x.Country_Region : `${x.Province_State}, ${x.Country_Region}`;
+            x.Combined_Key = x.Combined_Key || x.Province_State === '' ? x.Country_Region : `${x.Province_State}, ${x.Country_Region}`;
+            x.UID = `${x.IsoDate}:${x.Combined_Key}`;
             x = setLatLongForSpecialCases(x);
             return setCoords(x);
         });
@@ -148,8 +150,8 @@ exports.parseCasesTimeCsv = async function (file = casesTimeCSVPath) {
     return recs;
 }
 
-function setCoords(record) {
-    let lu = lookups.find(x => x.Combined_Key == record.Combined_Key);
+function setCoords(record, luInput = lookups) {
+    let lu = luInput.find(x => x.Combined_Key == record.Combined_Key);
     if (lu) {
         record.Lat = lu.Lat;
         record.Long_ = lu.Long_;
@@ -158,15 +160,31 @@ function setCoords(record) {
     return record;
     //throw 'done';
 }
+exports.setCoordsAndPopulation = setCoords;
 
 async function savePopLookups() {
     logger.log('Processing Lookups CSV...');
     //since we are on master, parse and save the lookup table
     let lookupJSONPath = './docs/data/lookups.json';
     let lookupCsv = `${repo}/csse_covid_19_data/UID_ISO_FIPS_LookUp_Table.csv`;
-    let localLastUpdated = fs.existsSync(lookupJSONPath) ?
-        new Date(fs.statSync(lookupJSONPath).mtime).getTime()
-        : 0;
+    lookups = exports.getLookupsArray();
+    if (lookups.length > 0) {
+        let localLastUpdated = fs.existsSync(lookupJSONPath) ?
+            new Date(fs.statSync(lookupJSONPath).mtime).getTime()
+            : 0;
+        let remoteLastUpdated = await lastUpdatedDate(lookupCsv);
+        if (remoteLastUpdated > localLastUpdated) {
+            await dataWriter.save(lookupJSONPath, JSON.stringify(recs));
+        } else {
+            logger.log(`Lookups CSV did not change, not saving`);
+        }
+    }
+    return lookups;
+}
+
+exports.getLookupsArray = function (lookupJSONPath = './docs/data/lookups.json') {
+
+    let lookupCsv = `${repo}/csse_covid_19_data/UID_ISO_FIPS_LookUp_Table.csv`;
     if (fs.existsSync(lookupCsv)) {
         let d = fs.readFileSync(`${lookupCsv}`).toString("utf8");
         lookups = parse(d, { columns: true })
@@ -179,12 +197,6 @@ async function savePopLookups() {
                 x.Long_ = parseFloat(x.Long_, 10);
                 return x;
             });
-        let remoteLastUpdated = await lastUpdatedDate(lookupCsv);
-        if (remoteLastUpdated > localLastUpdated) {
-            await dataWriter.save(lookupJSONPath, JSON.stringify(recs));
-        } else {
-            logger.log(`Lookups CSV did not change, not saving`);
-        }
     } else {
         logger.log(`File not found: ${lookupCsv}`);
     }
