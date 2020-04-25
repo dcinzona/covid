@@ -88,7 +88,7 @@ function recMapGet(input) {
 function recMapSet(input, coords) {
     let rec = {};
     rec[input] = coords;
-    if(recMapContains(input)){
+    if (recMapContains(input)) {
         return;//console.log(`Shouldn't hit this`, rec)
     }
     exports.recMap.push(rec);
@@ -262,6 +262,7 @@ function normalizeCombinedKey(record) {
                 Lat: record.Lat,
                 Long_: record.Long_,
             });
+            break;
         case "Australia":
             record.Lat = -35.282001;
             record.Long_ = 149.128998;
@@ -301,8 +302,7 @@ function processRecords() {
             //fix combined keys that include us county (reduce to just state, country)
             let spl = x.Combined_Key.split(",");
             x.Combined_Key =
-                spl.length > 2
-                    ? `${spl[1].trim()}, ${spl[2].trim()}`
+                spl.length > 2 ? `${spl[1].trim()}, ${spl[2].trim()}`
                     : x.Combined_Key;
 
             //fix for some combined keys missing spaces
@@ -312,11 +312,9 @@ function processRecords() {
             }
 
             //update coordinates based on state
-            x.Lat = recMapContains(x.Combined_Key)
-                    ? recMapGet(x.Combined_Key).Lat
-                    : x.Lat;
-            x.Long_ = recMapContains(x.Combined_Key)
-                ? recMapGet(x.Combined_Key).Long_
+            x.Lat = recMapContains(x.Combined_Key) ? recMapGet(x.Combined_Key).Lat
+                : x.Lat;
+            x.Long_ = recMapContains(x.Combined_Key) ? recMapGet(x.Combined_Key).Long_
                 : x.Long_;
             //console.log(x);
             //throw '';
@@ -362,7 +360,7 @@ exports.mapRecords = function (records) {
         r.UID = `${x.IsoDate}:${x.Combined_Key}`;
         return r;
     });
-}
+};
 
 exports.setCombined = setCombined;
 exports.normalizeCombinedKey = normalizeCombinedKey;

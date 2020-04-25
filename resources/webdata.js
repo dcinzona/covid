@@ -48,6 +48,9 @@ async function run(force = false) {
 async function checkout() {
     //always build data because we check if anything changed prior to pushing so there's no harm in building every time.
     forceRun = true;
+    let opts = { cwd: repo };
+    logger.log('Fetching latest');
+    await spawnPromise('git', ['fetch', '--all'], opts);
 
     //check if recent data was updated
     await setBranch('web-data');
@@ -115,6 +118,9 @@ Country_Region,Last_Update,Confirmed,Deaths,Recovered,Active,Delta_Confirmed,Del
 exports.parseCasesTimeCsv = async function (file = casesTimeCSVPath) {
 
     if (lookups.length == 0) {
+        let opts = { cwd: repo };
+        logger.log('Fetching latest');
+        await spawnPromise('git', ['fetch', '--all'], opts);
         await setBranch('master');
         await savePopLookups();
         await setBranch('web-data');
@@ -148,7 +154,7 @@ exports.parseCasesTimeCsv = async function (file = casesTimeCSVPath) {
 
     logger.log(`Done parseCasesTimeCsv - Total Records: ${recs.length}`);
     return recs;
-}
+};
 
 function setCoords(record, luInput = lookups) {
     let lu = luInput.find(x => x.Combined_Key == record.Combined_Key);
@@ -201,18 +207,19 @@ exports.getLookupsArray = function (lookupJSONPath = './docs/data/lookups.json')
         logger.log(`File not found: ${lookupCsv}`);
     }
     return lookups;
-}
+};
 
 async function setBranch(branch) {
     try {
+        let opts = { cwd: repo };
         logger.log(`Setting branch: ${branch}`);
-        let resp = await spawnPromise('git', ['checkout', branch], { cwd: repo })
+        let resp = await spawnPromise('git', ['checkout', branch], opts)
             .then(async success => {
                 if (success.startsWith('Your branch is up to date with')) {
                     logger.log(`Branch is already up to date with ${branch}`);
                 } else {
                     logger.log(success);
-                    let pull = await spawnPromise('git', ['pull'], { cwd: repo });
+                    let pull = await spawnPromise('git', ['pull'], opts);
                     logger.log(pull);
                     return pull;
                 }

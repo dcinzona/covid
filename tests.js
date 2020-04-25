@@ -33,17 +33,37 @@ async function runWebdataTest() {
     console.log(`cases_csv: ${cases_csv.length}`);
     console.log(`dailyReportRecs : ${dailyReportRecs.length}`);
     //cases_csv.sort((a, b) => (a.time > b.time) ? 1 : -1);
-    cases_csv.sort(sorter);
-    dailyReportRecs.sort(sorter);
+    //cases_csv.sort(sorter);
+    //dailyReportRecs.sort(sorter);
     //console.log(cases_csv.find(x => x.Country_Region === 'US' && x.Province_State !== ''),
     //    dailyReportRecs.find(x => x.Country_Region === 'US' && x.Province_State !== ''));
-    let drUIDset = new Set(dailyReportRecs.map(x => { return x.UID }));
-    let casesCsvSet = new Set(cases_csv.map(x => { return x.UID }));
-
-    let difference = new Set([...drUIDset].filter(x => !casesCsvSet.has(x)))
-    console.log(dailyReportRecs.find(x => x.UID == [...difference][difference.size - 1]));
-
+    //let drUIDset = new Set(dailyReportRecs.map(x => { return x.UID; }));
+    //let casesCsvSet = new Set(cases_csv.map(x => { return x.UID; }));
+    //let difference = new Set([...drUIDset].filter(x => !casesCsvSet.has(x)));
+    //console.log(dailyReportRecs.find(x => x.UID == [...difference][difference.size - 1]));
+    //get latest records:
+    let maxTime = getMaxTime(cases_csv);
+    let latestCases = cases_csv.filter(x => x.time === maxTime);
+    console.log(`latestCases.length: `, latestCases.length);
+    console.log(`total sum confirmed: `, getSumConfirmed(latestCases));
+    console.log(latestCases.sort(sorter)[0]);
     //console.log(cases_csv.find(x => x.Population === undefined))
+
+    let maxTimeDR = getMaxTime(dailyReportRecs);
+    let latestCasesDR = dailyReportRecs.filter(x => x.time === maxTime);
+    console.log(`latestCasesDR.length: `, latestCasesDR.length);
+    console.log(`total sum confirmed DR: `, getSumConfirmed(latestCasesDR));
+    console.log(latestCasesDR.sort(sorter)[0]);
+
+    function getSumConfirmed(data) {
+        return data.reduce(function (prev, cur) {
+            return prev + cur.Confirmed;
+        }, 0);
+    }
+
+    function getMaxTime(data) {
+        return data.reduce((max, p) => p.time > max ? p.time : max, data[0].time);
+    }
 }
 
 function sorter(a, b) {
