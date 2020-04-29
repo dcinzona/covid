@@ -159,6 +159,7 @@ define([
         chart.legend.properties.paddingTop = -10
         chart.legend.properties.marginBottom = 10;
         chart.tapToActivate = true;
+        chart.zoomOutButton.align = "left";
         return chart;
     }
 
