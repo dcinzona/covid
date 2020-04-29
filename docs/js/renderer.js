@@ -5,9 +5,9 @@ define([], function () {
         type: "size",
         valueExpression: "$view.scale",
         stops: [
-            { value: 18489334, size: 9 }, // smallest marker will be 12pt at 1:1128 scale
-            { value: 36978669, size: 7 },
-            { value: 73957338, size: 4 },
+            { value: 18489334, size: 20 }, // smallest marker will be 12pt at 1:1128 scale
+            { value: 36978669, size: 12 },
+            { value: 73957338, size: 6 },
             { value: 150000000, size: 2 }, // smallest marker will be 1.5pt at 1:591657528 scale
         ],
     };
@@ -16,9 +16,9 @@ define([], function () {
         type: "size",
         valueExpression: "$view.scale",
         stops: [
-            { value: 18489334, size: 90 }, // largest marker will be 90pt at 1:1128 scale
-            { value: 36978669, size: 50 },
-            { value: 73957338, size: 30 },
+            { value: 18489334, size: 400 }, // largest marker will be 90pt at 1:1128 scale
+            { value: 36978669, size: 120 },
+            { value: 73957338, size: 50 },
             { value: 150000000, size: 20 }, // largest marker will be 19pt at 1:591657528 scale
         ],
     };
@@ -36,7 +36,7 @@ define([], function () {
                 stops: [
                     {
                         value: 1,
-                        opacity: 0.7,
+                        opacity: 0.6,
                     },
                 ],
                 legendOptions: {
@@ -46,10 +46,10 @@ define([], function () {
             {
                 type: "size",
                 minDataValue: 1,
-                maxDataValue: 10000,
+                maxDataValue: 350000,
                 minSize: minSize,//5,
                 maxSize: maxSize,//90,
-                valueExpression: "$feature.ct * 1",
+                valueExpression: "$feature.ct *1.4",
                 valueExpressionTitle: "Confirmed Cases",
                 valueUnit: "unknown",
                 legendOptions: {
