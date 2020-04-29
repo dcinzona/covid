@@ -11,7 +11,7 @@ define([
             let el = document.getElementById('compareMode');
             el.checked = !el.checked;
         }
-    }
+    };
 
     function init(lv, v, l, s) {
         layerview = lv;
@@ -59,7 +59,7 @@ define([
 
         chart = am4core.create("rateChart", am4charts.XYChart3D);
         chart.numberFormatter.numberFormat = "#.#a";
-        chart.colors.step = 2
+        chart.colors.step = 2;
 
         var dateAxis = chart.xAxes.push(new am4charts.DateAxis());
         dateAxis.renderer.grid.template.location = 0;
@@ -97,16 +97,14 @@ define([
         pattern.strokeWidth = 2;
         pattern.stroke = am4core.color("red");
         pattern.fill = pattern.stroke;
-        pattern.fillOpacity = .5;
+        pattern.fillOpacity = 0.5;
         pattern.rotation = 45;
         /* */
         var range = dateAxis.axisRanges.create();
         range.date = yesterday;
         range.endDate = todayUTC;
-        range.axisFill.fill = pattern;//am4core.color("red");
+        range.axisFill.fill = pattern;
         range.axisFill.fillOpacity = 0.4;
-        //range.grid.strokeOpacity = 0;
-        //console.log(range);
         range.axisFill.tooltip = new am4core.Tooltip();
         range.axisFill.tooltipText = "[opacity:.9 letter-spacing:2px]Partial Data...[/]";
         range.axisFill.tooltip.rotation = 90;
@@ -114,23 +112,12 @@ define([
         range.axisFill.isMeasured = true;
         range.axisFill.tooltip.fontSize = "11px";
         range.axisFill.tooltip.getFillFromObject = false;
-        range.axisFill.tooltip.background.fill = pattern;//am4core.color('rgb(50,50,50')//'rgba(50, 50, 50, 0.7)');
+        range.axisFill.tooltip.background.fill = pattern;
         range.axisFill.tooltip.background.fillOpacity = pattern.fillOpacity * range.axisFill.fillOpacity;
         range.axisFill.tooltip.background.stroke = pattern.stroke;
         range.axisFill.tooltip.background.strokeWidth = 1;
         range.axisFill.tooltip.background.strokeOpacity = range.axisFill.tooltip.background.fillOpacity;
         range.axisFill.tooltip.label.padding(2, 4, 2, 4);
-        /* *
-        range.label.inside = true;
-        var label = range.label;
-        label.text = 'Collecting Data...';
-        label.fontSize = '10px';
-        label.rotation = 90;
-        label.isMeasured = false;
-        label.textAlign = "middle";
-        label.textValign = "middle";
-        label.fill = range.grid.stroke;
-        /* */
 
         var valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
         valueAxis.tooltip.disabled = true;
@@ -152,14 +139,27 @@ define([
 
         dateAxis.renderer.grid.template.strokeOpacity = 0.07;
         valueAxis.renderer.grid.template.strokeOpacity = 0.07;
-        chart.responsive.useDefault = false
+        chart.responsive.useDefault = false;
         chart.responsive.enabled = true;
         chart.scrollbarX.properties.marginBottom = 20;
         chart.scrollbarX.properties.paddingTop = 0;
-        chart.legend.properties.paddingTop = -10
+        chart.legend.properties.paddingTop = -10;
         chart.legend.properties.marginBottom = 10;
         chart.tapToActivate = true;
+        //zoom out button config
+        chart.zoomOutButton.disabled = true;
+        /*
         chart.zoomOutButton.align = "left";
+        chart.zoomOutButton.background.fill = am4core.color("#404251");
+        chart.zoomOutButton.icon.stroke = am4core.color("#EFD9CE");
+        chart.zoomOutButton.icon.strokeWidth = 3;
+        chart.zoomOutButton.background.states.getKey("hover").properties.fill = am4core.color("#696969");
+        chart.zoomOutButton.cursorOverStyle = am4core.MouseCursorStyle.pointer;
+        var shadow = chart.zoomOutButton.filters.push(new am4core.DropShadowFilter());
+        shadow.dx = 0;
+        shadow.dy = 0;
+        shadow.blur = 3;
+        */
         return chart;
     }
 
@@ -180,7 +180,7 @@ define([
         series.legendSettings.itemValueText = "[bold]{valueY.value.formatNumber('#,###')}[/]";
         series.showOnInit = false;
         series.tooltip.getFillFromObject = false;
-        series.tooltip.background.fill = am4core.color('rgb(50,50,50')//'rgba(50, 50, 50, 0.7)');
+        series.tooltip.background.fill = am4core.color('rgb(50,50,50');
         series.tooltip.background.stroke = series.stroke.hex;
         //series.tooltip.background.strokeOpacity = 0.5;
         series.tooltip.fontSize = "0.8em";
@@ -193,7 +193,7 @@ define([
     }
 
     function updateChart(arr) {
-        let series = createSeries(seriesName(selectedRecord.country), 'confirmed')
+        let series = createSeries(seriesName(selectedRecord.country), 'confirmed');
         series.data = mapData(arr);
         return series;
     }
@@ -233,7 +233,7 @@ define([
                 'deaths': deaths,
                 'cfr': cfr,
                 'delta': delta,
-            }
+            };
             prev = i > 0 ? conf : undefined;
             return conf;
         });
@@ -242,7 +242,7 @@ define([
 
     let seriesName = function (location = selectedRecord.country) {
         return `${location}`;
-    }
+    };
 
     var hitTest = promiseUtils.debounce(function (event) {
         return view.hitTest(event).then(function (hit) {
@@ -297,7 +297,7 @@ define([
         /* placement */
         let count = groupedSeriesLength();
         chart.depth = 25 * (count - 1);
-        let opp = false
+        let opp = false;
         if (count == 1) {
             opp = true;
             chart.padding(0, 0, 0, 20);
@@ -310,7 +310,7 @@ define([
         chart.series.each((series, idx) => {
             if (series.data.length > 0) {
                 let found = processed.find(x => x.data[0].country === series.data[0].country);
-                let diff = chart.series.length - count
+                let diff = chart.series.length - count;
                 let index = count != chart.series.length && idx > 1 && series.data[0].country !== series.name ? idx - diff : idx;
                 series.dx = found ? found.dx : chart.depth / (count) * am4core.math.cos(chart.angle) * index;
                 series.dy = found ? found.dy : -chart.depth / (count) * am4core.math.sin(chart.angle) * index;
@@ -319,7 +319,7 @@ define([
         });
         chart.yAxes.each(aY => {
             aY.renderer.opposite = opp;
-        })
+        });
     }
 
     Array.prototype.max = function () {
@@ -429,9 +429,7 @@ define([
                     } else {
                         seriesToRemove.push(t);
                     }
-                    if (country !== selectedRecord.country
-                        && t.name !== country
-                        && countriesToRemove.includes(country) == false) {
+                    if (country !== selectedRecord.country && t.name !== country && countriesToRemove.includes(country) == false) {
                         countriesToRemove.push(country);
                     }
                 });
@@ -442,7 +440,7 @@ define([
                             countrySeriesToRemove.push(c);
                         }
                     }
-                })
+                });
 
                 //this is a mess
                 if (compareMode.enabled) {
@@ -505,7 +503,7 @@ define([
                 if (queryPlaces) {
                     loadPlaceSeries(selectedRecord.place);
                 }
-            })
+            });
         });
     };
 
@@ -522,7 +520,7 @@ define([
         queryParams.where = ` country = '${selectedRecord.country}' ${filter}`;
         let todayString = new Date().toISOString().split('T')[0];
         return layer.queryFeatures(queryParams).then(function (results) {
-            let sorted = results.features
+            let sorted = results.features;
             //.filter(x => x.attributes.dateString != todayString)
             //.sort(sorter);
             return sorted;
@@ -540,7 +538,7 @@ define([
             let countries = chart.series.values
                 .map(x => x.data.reduce(y => y).country)
                 .filter((v, i, a) => a.indexOf(v) === i).join(' vs. ');
-            title = `Comparing Spread: <span>${countries}</span>`
+            title = `Comparing Spread: <span>${countries}</span>`;
         }
         chartWrapper.querySelector('.chartTitle').innerHTML = title;
         setDimensions();
