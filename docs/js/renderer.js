@@ -5,10 +5,10 @@ define([], function () {
         type: "size",
         valueExpression: "$view.scale",
         stops: [
-            { value: 18489334, size: 20 }, // smallest marker will be 12pt at 1:1128 scale
-            { value: 36978669, size: 12 },
-            { value: 73957338, size: 6 },
-            { value: 150000000, size: 2 }, // smallest marker will be 1.5pt at 1:591657528 scale
+            { value: 18489334, size: 7 }, // smallest marker will be 12pt at 1:1128 scale
+            { value: 36978669, size: 5 },
+            { value: 73957338, size: 4 },
+            { value: 150000000, size: 3 }, // smallest marker will be 1.5pt at 1:591657528 scale
         ],
     };
     // maximum size to render maxDataVal at specified view scales
@@ -16,10 +16,10 @@ define([], function () {
         type: "size",
         valueExpression: "$view.scale",
         stops: [
-            { value: 18489334, size: 400 }, // largest marker will be 90pt at 1:1128 scale
-            { value: 36978669, size: 120 },
-            { value: 73957338, size: 50 },
-            { value: 150000000, size: 20 }, // largest marker will be 19pt at 1:591657528 scale
+            { value: 18489334, size: 120 }, // largest marker will be 90pt at 1:1128 scale
+            { value: 36978669, size: 80 },
+            { value: 73957338, size: 60 },
+            { value: 150000000, size: 40 }, // largest marker will be 19pt at 1:591657528 scale
         ],
     };
     return {
@@ -46,14 +46,14 @@ define([], function () {
             {
                 type: "size",
                 minDataValue: 1,
-                maxDataValue: 350000,
+                maxDataValue: 250000,
                 minSize: minSize,//5,
                 maxSize: maxSize,//90,
-                valueExpression: "$feature.ct *1.4",
+                valueExpression: "$feature.ct *1.2",
                 valueExpressionTitle: "Confirmed Cases",
                 valueUnit: "unknown",
                 legendOptions: {
-                    showLegend: false,
+                    showLegend: true,
                 },
             },
             {
@@ -65,7 +65,7 @@ define([], function () {
                     //{ value: 800, color: "#98d1d1" },
                     { value: 10000, color: "#ffed85" },
                     //{ value: 3500, color: "#df979e" },
-                    { value: 20000, color: "#c80064" },
+                    { value: 200000, color: "#c80064" },
                 ],
                 legendOptions: {
                     showLegend: true,
