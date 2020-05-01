@@ -30,17 +30,21 @@ async function run(force = false) {
         return 0;
     }
     isRunning = true;
-    forceRun = force;
-    buildCSV.records = [];
-    let folderExists = fs.existsSync(repo);
-    if (!folderExists) {
-        logger.log("Directory does not exist.  Cloning repo....");
-        console.log(await spawnPromise('git', ['clone', 'https://github.com/CSSEGISandData/COVID-19.git', repo]));
-        logger.log(`Clone done.  Starting checkout process...`);
-        await checkout();
-    } else {
-        logger.log("Directory exists. Starting checkout process...");
-        await checkout();
+    try {
+        forceRun = force;
+        buildCSV.records = [];
+        let folderExists = fs.existsSync(repo);
+        if (!folderExists) {
+            logger.log("Directory does not exist.  Cloning repo....");
+            console.log(await spawnPromise('git', ['clone', 'https://github.com/CSSEGISandData/COVID-19.git', repo]));
+            logger.log(`Clone done.  Starting checkout process...`);
+            await checkout();
+        } else {
+            logger.log("Directory exists. Starting checkout process...");
+            await checkout();
+        }
+    } catch (ex) {
+        logger.error(ex);
     }
     isRunning = false;
 }
