@@ -165,7 +165,8 @@ async function parseCasesTimeCsv(file = casesTimeCSVPath) {
 
     logger.log(`Done parseCasesTimeCsv - Total Records: ${recs.length}`);
     return recs;
-};
+}
+
 exports.parseCasesTimeCsv = parseCasesTimeCsv;
 
 function setCoords(record, luInput = lookups) {
