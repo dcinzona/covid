@@ -192,7 +192,7 @@ async function savePopLookups() {
             : 0;
         let remoteLastUpdated = await lastUpdatedDate(lookupCsv);
         if (remoteLastUpdated > localLastUpdated) {
-            await dataWriter.save(lookupJSONPath, JSON.stringify(recs));
+            await dataWriter.save(lookupJSONPath, JSON.stringify(lookups));
         } else {
             logger.log(`Lookups CSV did not change, not saving`);
         }
