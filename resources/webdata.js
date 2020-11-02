@@ -202,15 +202,20 @@ async function savePopLookups() {
             logger.log(`Lookups CSV did not change, not saving`);
         }
     }
+    logger.log('Done processing lookups...'); 
     return lookups;
 }
 
 exports.getLookupsArray = function (lookupJSONPath = './docs/data/lookups.json') {
-
+    logger.log('Getting lookups array...');
     let lookupCsv = `${repo}/csse_covid_19_data/UID_ISO_FIPS_LookUp_Table.csv`;
     if (fs.existsSync(lookupCsv)) {
         let d = fs.readFileSync(`${lookupCsv}`).toString("utf8");
-        lookups = parse(d, { columns: true })
+        lookups = parse(d, { 
+                columns: true,
+                relax_column_count: true,
+                skip_lines_with_error: true
+            })
             .filter((x) => {
                 return parseInt(x.Population) > 0 && `${x.Admin2}` === '';
             })
@@ -223,6 +228,7 @@ exports.getLookupsArray = function (lookupJSONPath = './docs/data/lookups.json')
     } else {
         logger.log(`File not found: ${lookupCsv}`);
     }
+    logger.log('Done getting lookups...');
     return lookups;
 };
 
