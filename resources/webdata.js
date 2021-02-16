@@ -10,6 +10,7 @@ const logger = require("../logger");
 const firstBy = require("thenby");
 const repoParser = require("../repoParser");
 const { spawnPromise } = require("./utils");
+const { lookupService } = require("dns");
 
 let repo = process.env.COVID_REPO_DIR;// + "-web-data";
 //branches = master ()
@@ -202,7 +203,7 @@ async function savePopLookups() {
             logger.log(`Lookups CSV did not change, not saving`);
         }
     }
-    logger.log('Done processing lookups...'); 
+    logger.log('Done processing lookups...');
     return lookups;
 }
 
@@ -211,11 +212,11 @@ exports.getLookupsArray = function (lookupJSONPath = './docs/data/lookups.json')
     let lookupCsv = `${repo}/csse_covid_19_data/UID_ISO_FIPS_LookUp_Table.csv`;
     if (fs.existsSync(lookupCsv)) {
         let d = fs.readFileSync(`${lookupCsv}`).toString("utf8");
-        lookups = parse(d, { 
-                columns: true,
-                relax_column_count: true,
-                skip_lines_with_error: true
-            })
+        lookups = parse(d, {
+            columns: true,
+            relax_column_count: true,
+            skip_lines_with_error: true
+        })
             .filter((x) => {
                 return parseInt(x.Population) > 0 && `${x.Admin2}` === '';
             })
@@ -347,8 +348,38 @@ function setLatLongForSpecialCases(rec) {
             rec.Lat = 31.37175163445504;
             rec.Long_ = -75.64934587047526;
             break;
+        case "Port Quarantine, Japan":
+            rec.Lat = 37.570109;
+            rec.Long_ = 142.641036;
+            break;
+        case "Repatriated Travellers, Canada":
+            rec.Lat = 45.09;
+            rec.Long_ = -78.489698;
+            break;
     }
     return rec;
+}
+
+//fix records that start with "Unknown,"
+function fixUnknown(record) {
+    if (record.Province_State.trim() === "Unknown") {
+        let lu = lookups.find(x => x.Combined_Key == record.Country_Region);
+        if (lu) {
+            record.Lat = lu.Lat;
+            record.Long_ = lu.Long_;
+            record.Population = lu.Population;
+        }
+        return record;
+    }
+    return record;
+    /*
+    if (x.Province_State.trim() === 'Unknown') {
+        x.Province_State = '';
+        x.Combined_Key = x.Country_Region.trim();
+        return setCoords(x);
+    }
+    return x;
+    */
 }
 
 function checkUSCombined(record) {
@@ -408,7 +439,7 @@ function finalize(recs = buildCSV.records) {
             x.UID = `${x.IsoDate}:${x.Location}`;
             x.UID2 = `${x.Combined_Key}:${x.IsoDate}`;
 
-            return x;
+            return fixUnknown(x);
         });
     //.sort(firstBy("Confirmed")).reverse();
     //throw '';
