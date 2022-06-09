@@ -6,14 +6,16 @@
   } catch (ex) {
     exports.domainRoot = "dev";
   }
+  const rawUrl =
+    "https://github.com/dcinzona/covid/raw/main/docs/data/mapdata.json"; //"https://media.githubusercontent.com/media/dcinzona/covid/master/docs/data/mapdata.json"
   const apiVersion = "v6";
   const dataURI = `${exports.domainRoot}/api/${apiVersion}/esri.geojson`;
-  const pubURI =
-    typeof window !== "undefined"
-      ? window.location.hostname.startsWith("localhost")
-        ? `${exports.domainRoot}/data/mapdata.json`
-        : "https://media.githubusercontent.com/media/dcinzona/covid/master/docs/data/mapdata.json"
-      : `${exports.domainRoot}/data/mapdata.json`;
+  const pubURI = `${exports.domainRoot}/data/mapdata.json`;
+  // typeof window !== "undefined"
+  //   ? window.location.hostname.startsWith("localhost")
+  //     ? `${exports.domainRoot}/data/mapdata.json`
+  //     : rawUrl
+  //   : `${exports.domainRoot}/data/mapdata.json`;
 
   // Export the function to exports
   // In node.js this will be exports
