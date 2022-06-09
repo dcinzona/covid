@@ -1,0 +1,374 @@
+html,
+body {
+    width: 100vw;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    background: black;
+    display: block;
+}
+
+#applicationDiv {
+    position: absolute;
+    width: 100vw;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    top: 0;
+}
+
+#viewDiv {
+    width: 100vw;
+    height: auto;
+    flex: 1 1 auto;
+    order: 1;
+}
+
+#titleDiv {
+    font-weight: 400;
+    font-style: normal;
+    font-size: 1.2019rem;
+    padding: 10px;
+    left: 1em;
+    top: 1em;
+}
+
+#updateNote {
+    font-size: 12px;
+    font-style: italic;
+    opacity: 0.8;
+}
+
+#statsDiv {
+    padding-top: 1rem;
+    font-size: 0.8rem;
+}
+
+#statsDiv span,
+.esri-popup__header-title span,
+.chartTitle span {
+    color: #f9c653;
+    font-size: 12pt;
+    font-weight: bolder;
+}
+
+#statsDiv span.cfr,
+.esri-popup__header-title span.cfr,
+.esri-popup__header-title i,
+.chartTitle i {
+    color: #da0000;
+}
+
+.esri-popup__header-title i,
+.chartTitle i {
+    font-weight: normal;
+}
+
+#sliderContainer {
+    flex: 0 0 80px;
+    order: 2;
+
+    display: flex;
+    flex-flow: row;
+
+    padding: 0 10px 0 0;
+}
+
+#sliderInnerContainer {
+    flex: 1 1 auto;
+    order: 2;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 10px;
+}
+
+#slider {
+    width: 100%;
+    height: 60px;
+}
+
+#slider > div + div {
+    margin-left: 20px;
+}
+
+.esri-slider--horizontal .esri-slider__max,
+.esri-slider--horizontal .esri-slider__min {
+    width: auto;
+}
+
+/**
+    * Play/Stop toggle button
+    */
+
+#playButton {
+    flex: 0 0 auto;
+    order: 1;
+    height: 100%;
+    margin: 0;
+    padding: 0 10px;
+    box-sizing: content-box;
+}
+
+#playButton.disabled {
+    cursor: wait;
+}
+
+.toggle-button {
+    display: flex;
+}
+
+.toggle-button .toggle-button-icon {
+    color: #1bcc1b;
+    font-size: 30px;
+}
+.toggle-button.toggled .toggle-button-icon {
+    color: #cc1b1b;
+}
+
+.toggle-button.disabled .toggle-button-icon {
+    color: gray;
+    opacity: 0.7;
+}
+
+.toggle-button > :nth-child(2) {
+    display: none;
+}
+
+.toggle-button.toggled > :nth-child(1) {
+    display: none;
+}
+
+.toggle-button.toggled > :nth-child(2) {
+    display: block;
+}
+
+.tooltip {
+    position: absolute;
+    pointer-events: none;
+    transition: opacity 200ms;
+}
+
+.tooltip > div {
+    margin: 0 auto;
+    padding: 12px;
+    border-radius: 4px;
+    box-shadow: 0px 0px 4px rgba(255, 255, 255, 0.75);
+    transform: translate3d(-50%, -125%, 0);
+}
+
+.esri-view .esri-view-surface--inset-outline:focus::after {
+    outline: none;
+}
+
+.esri-view-width-less-than-small .esri-zoom .esri-widget--button {
+    display: none;
+}
+
+#chartWrapper {
+    position: absolute;
+    display: none;
+    overflow: hidden;
+    box-sizing: border-box;
+    color: #d1d1d1;
+    font-size: 14px;
+    font-family: "Avenir Next W00", "Helvetica Neue", Helvetica, Arial,
+        sans-serif;
+    line-height: 1.3em;
+    background-color: #242424;
+    order: 1;
+    flex-direction: column;
+}
+
+#applicationDiv.chartVisible #chartWrapper {
+    display: flex;
+    position: absolute;
+    right: 1rem;
+    bottom: calc(80px + 1rem);
+    box-shadow: 2px 2px 5px 3px rgba(0, 0, 0, 0.1);
+    width: 40vw;
+}
+
+#chartWrapper .chartHeader {
+    display: flex;
+}
+
+#chartWrapper .chartTitle {
+    flex: 1;
+    border-radius: 2px;
+    font-size: 14px;
+    padding: 6px 7px;
+    margin: 6px auto 6px 7px;
+    display: block;
+    transition: background-color 125ms ease-in-out;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+#rateChart {
+    padding: 0 5px 5px 10px;
+    height: 350px;
+}
+
+:focus {
+    outline: none;
+}
+
+.toggles {
+    display: none;
+    padding: 1rem 0 0;
+    font-size: 12px;
+}
+#applicationDiv.chartVisible .toggles {
+    display: block;
+}
+
+.switch {
+    --line: #505162;
+    --dot: #f7f8ff;
+    --circle: #696969;
+    --duration: 0.3s;
+    --text: #bfbfbf;
+    cursor: pointer;
+}
+.switch input {
+    display: none;
+}
+.switch input + div {
+    position: relative;
+}
+.switch input + div:before,
+.switch input + div:after {
+    --s: 1;
+    content: "";
+    position: absolute;
+    height: 4px;
+    top: 10px;
+    width: 24px;
+    background: var(--line);
+    -webkit-transform: scaleX(var(--s));
+    transform: scaleX(var(--s));
+    -webkit-transition: -webkit-transform var(--duration) ease;
+    transition: -webkit-transform var(--duration) ease;
+    transition: transform var(--duration) ease;
+    transition: transform var(--duration) ease,
+        -webkit-transform var(--duration) ease;
+}
+.switch input + div:before {
+    --s: 0;
+    left: 0;
+    -webkit-transform-origin: 0 50%;
+    transform-origin: 0 50%;
+    border-radius: 2px 0 0 2px;
+}
+.switch input + div:after {
+    left: 28px;
+    -webkit-transform-origin: 100% 50%;
+    transform-origin: 100% 50%;
+    border-radius: 0 2px 2px 0;
+}
+.switch input + div span {
+    padding-left: 56px;
+    line-height: 24px;
+    color: var(--text);
+}
+.switch input:checked + div span {
+    color: var(--dot);
+}
+.switch input + div span:before {
+    --x: 0;
+    --b: var(--circle);
+    --s: 4px;
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 var(--s) var(--b);
+    -webkit-transform: translateX(var(--x));
+    transform: translateX(var(--x));
+    -webkit-transition: box-shadow var(--duration) ease,
+        -webkit-transform var(--duration) ease;
+    transition: box-shadow var(--duration) ease,
+        -webkit-transform var(--duration) ease;
+    transition: box-shadow var(--duration) ease, transform var(--duration) ease;
+    transition: box-shadow var(--duration) ease, transform var(--duration) ease,
+        -webkit-transform var(--duration) ease;
+}
+.switch input + div span:not(:empty) {
+    padding-left: 64px;
+}
+.switch input + div span:not(:empty):after {
+    content: " Disabled";
+    color: lightslategrey;
+    font-weight: bold;
+}
+.switch input:checked + div:before {
+    --s: 1;
+}
+.switch input:checked + div:after {
+    --s: 0;
+}
+.switch input:checked + div span:before {
+    --x: 28px;
+    --s: 12px;
+    --b: var(--dot);
+}
+.switch input:checked + div span:after {
+    content: " Enabled";
+    color: deepskyblue;
+    font-weight: bold;
+}
+
+@media screen and (max-width: 440px) {
+    #applicationDiv.chartVisible #chartWrapper {
+        position: relative;
+        bottom: 0;
+        right: 0;
+        margin: 0;
+        min-width: 100vw;
+        width: 100vw;
+        order: 1;
+        overflow: visible;
+        box-shadow: none;
+        border-bottom: solid 1px black;
+    }
+
+    #applicationDiv.chartVisible #titleDiv br,
+    #applicationDiv.chartVisible #statsDiv,
+    .chartVisible #sliderContainer {
+        display: none;
+    }
+}
+
+@media screen and (max-height: 475px) {
+    #applicationDiv.chartVisible #chartWrapper {
+        right: 0;
+        margin: 0;
+        overflow: visible;
+        box-shadow: none;
+        height: 100%;
+        top: 0;
+        bottom: initial;
+        width: 50vw;
+        border-bottom: solid 1px black;
+    }
+
+    #rateChart {
+        height: calc(100%);
+    }
+
+    #applicationDiv.chartVisible #titleDiv br,
+    #applicationDiv.chartVisible #statsDiv,
+    .chartVisible #sliderContainer {
+        display: none;
+    }
+
+    #titleDiv {
+        font-size: 1rem;
+    }
+}

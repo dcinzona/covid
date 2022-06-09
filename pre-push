@@ -1,0 +1,35 @@
+#!/usr/bin/env node
+// INSTALL 
+// cp ./pre-push .git/hooks/pre-push
+
+const childProcessExec = require('child_process').execSync;
+const TIMEOUT_THRESHOLD = 3000;
+
+//console.log(process.env.PWD);
+try{
+  getMapDataFromMaster();
+  hookCleanup();
+} catch(_){
+  process.exit(1);
+}
+
+function getMapDataFromMaster(){
+  if(getCurrentBranch() == 'dev'){
+    let exec = `git checkout origin/master docs/data/mapdata.json && git commit --amend -m "updating mapdata from master" docs/data/mapdata.json`;
+    let stdout = childProcessExec(exec,{cwd:process.env.PWD}).toString();
+    console.log(stdout);
+  }
+  process.exit(0);
+}
+
+function getCurrentBranch() {
+  const branchesOutput = childProcessExec('git branch').toString();
+  return branchesOutput.split('\n').find(b => b.trim().charAt(0) === '*' ).trim().substring(2);
+}
+
+function hookCleanup(){
+  setTimeout(() => {
+    console.log('This is a timeout message from your commit-msg git hook. If you see this, something bad happened in your pre-commit hook, and it absolutely did not work as expected.');
+    process.exit(1);
+  },TIMEOUT_THRESHOLD);
+}

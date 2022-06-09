@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta
+            name="viewport"
+            content="height=device-height,width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"
+        />
+
+        <!-- Global site tag (gtag.js) - Google Analytics -->
+        <script
+            async
+            src="https://www.googletagmanager.com/gtag/js?id=UA-38355860-1"
+        ></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+            gtag("js", new Date());
+
+            gtag("config", "UA-38355860-1");
+        </script>
+
+        <title>COVID-19 Over Time</title>
+        <link rel="shortcut icon" href="/favicon.png" />
+        <!-- amcharts local 
+        <script src="vendor/amcharts4/core.js"></script>
+        <script src="vendor/amcharts4/charts.js"></script>
+        <script src="vendor/amcharts4/themes/dark.js"></script>
+        <script src="vendor/amcharts4/themes/animated.js"></script>
+        -->
+        <!-- amcharts CDN -->
+        <script src="//www.amcharts.com/lib/4/core.js"></script>
+        <script src="//www.amcharts.com/lib/4/charts.js"></script>
+        <script src="//www.amcharts.com/lib/4/themes/dark.js"></script>
+        <script src="//www.amcharts.com/lib/4/themes/animated.js"></script>
+        <link
+            rel="stylesheet"
+            href="https://js.arcgis.com/4.15/esri/themes/dark/main.css"
+        />
+        <script
+            type="text/javascript"
+            src="https://js.arcgis.com/4.15/"
+        ></script>
+
+        <link rel="stylesheet" href="css/styles.css" />
+    </head>
+
+    <body>
+        <div id="applicationDiv">
+            <div id="viewDiv"></div>
+            <div id="titleDiv" class="esri-widget">
+                <div><b>COVID-19 Spread Over Time</b></div>
+                <div id="updateNote"></div>
+                <div id="statsDiv" class="esri-widget"></div>
+                <div class="toggles">
+                    <label class="switch">
+                        <input type="checkbox" id="compareMode" />
+                        <div>
+                            <span>Compare Mode</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            <div id="sliderContainer" class="esri-widget">
+                <div
+                    id="playButton"
+                    class="esri-widget esri-widget--button toggle-button disabled"
+                >
+                    <div>
+                        <span
+                            class="toggle-button-icon esri-icon-play"
+                            aria-label="play icon"
+                        ></span>
+                    </div>
+                    <div>
+                        <span
+                            class="toggle-button-icon esri-icon-pause"
+                            aria-label="pause icon"
+                        ></span>
+                    </div>
+                </div>
+                <div id="sliderInnerContainer">
+                    <div id="slider"></div>
+                </div>
+            </div>
+            <div id="chartWrapper" class="chartWrapper">
+                <div class="chartHeader">
+                    <h2 class="chartTitle"></h2>
+                    <div class="esri-popup__header-buttons">
+                        <div
+                            role="button"
+                            tabindex="0"
+                            class="esri-popup__button"
+                            aria-label="Close"
+                            title="Close"
+                            id="closeChart"
+                        >
+                            <span
+                                aria-hidden="true"
+                                class="esri-popup__icon esri-icon-close"
+                            ></span>
+                        </div>
+                    </div>
+                </div>
+                <div id="rateChart"></div>
+            </div>
+        </div>
+        <script async type="text/javascript" src="js/app.js"></script>
+        <!-- Cloudflare Web Analytics -->
+        <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "045bf93d34a14cbab693e3479e692f5b"}'></script>
+        <!-- End Cloudflare Web Analytics -->
+    </body>
+</html>

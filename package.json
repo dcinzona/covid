@@ -1,0 +1,32 @@
+{
+    "name": "covid",
+    "version": "1.0.0",
+    "description": "",
+    "main": "parse.js",
+    "scripts": {
+        "pm2": "pm2 start ecosystem.config.js",
+        "web-server": "node index.js",
+        "cron": "node cron.js",
+        "webhook": "node webhook.js",
+        "webhook-test": "node tests.js webhook",
+        "webdata": "node -e \"require('./resources/webdata').run()\"",
+        "webdata-force": "node -e \"require('./resources/webdata').run(true)\"",
+        "webdata-test": "node tests.js webdata"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "ansi-to-html": "^0.6.14",
+        "cloudflare": "^2.7.0",
+        "compression": "^1.7.4",
+        "csv": "^5.3.2",
+        "csv-parse": "^4.8.8",
+        "dotenv": "^8.2.0",
+        "express": "^4.17.1",
+        "node-cron": "^2.0.3",
+        "pm2": "^4.2.3",
+        "request": "^2.88.2",
+        "thenby": "^1.3.0"
+    }
+}

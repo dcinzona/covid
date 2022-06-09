@@ -1,0 +1,12 @@
+.vscode
+node_modules
+.env
+*.csv
+COVID-19
+data.json
+package-lock.json
+*.geojson
+cron_last_updated.txt
+*.log
+.DS_Store
+..bfg-report

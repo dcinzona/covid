@@ -1,0 +1,5 @@
+COVID_REPO_DIR='/home/gmt/COVID-19'
+ENV='DEV'
+WEBHOOK_SECRET='MY-GITHUB-SECRET-KEY'
+CF_TOKEN='Cloudflare API Token'
+CF_ZONE_ID='Cloudflare DNS Zone ID'
